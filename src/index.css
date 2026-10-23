@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  /* Cores principais */
+  --color-brand: #2E7D32;        /* verde principal (botão Entrar) */
+  --color-brand-light: #E8F5E9;  /* verde claro (card Valor estimado) */
+  --color-surface: #F4F5F0;      /* fundo off-white esverdeado */
+
+  /* Textos */
+  --color-ink: #1B221B;          /* texto principal */
+  --color-ink-muted: #556255;    /* texto secundário */
+  --color-ink-subtle: #889688;   /* texto de menor destaque */
+
+  /* Status Offline */
+  --color-offline: #E65100;
+  --color-offline-bg: #FFF3E0;
+
+  /* Fonte */
+  --font-sans: "Rethink Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
