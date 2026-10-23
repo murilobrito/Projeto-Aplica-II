@@ -1,22 +1,48 @@
+import { BrowserRouter } from 'react-router'
+import { House, ChartColumn, Smartphone, User } from 'lucide-react'
+import { Badge } from './components/Badge'
+import { BottomNav } from './components/BottomNav'
+import { Button } from './components/Button'
+import { Card } from './components/Card'
+import { Input } from './components/Input'
+import { StatCard } from './components/StatCard'
+
+const navItems = [
+  { to: '/', label: 'Início', icon: House },
+  { to: '/dashboard', label: 'Painel', icon: ChartColumn },
+  { to: '/dispositivos', label: 'Lixeiras', icon: Smartphone },
+  { to: '/perfil', label: 'Perfil', icon: User },
+]
+
 function App() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-      <h1 className="text-4xl font-extrabold text-brand">EcoTriall</h1>
-      <p className="text-ink-muted">Texto secundário de teste</p>
+    <BrowserRouter>
+      <main className="mx-auto flex max-w-md flex-col gap-4 p-6 pb-24">
+        <h1 className="text-3xl font-extrabold text-brand">EcoTriall</h1>
+        <h3> isso é um teste dos componetes</h3>
 
-      <div className="rounded-2xl bg-brand-light p-4 text-ink">
-        <p className="text-sm text-ink-subtle">Valor estimado</p>
-        <p className="text-2xl font-bold">R$ 1.250,00</p>
-      </div>
+        <div className="flex gap-2">
+          <Badge variant="online">Online</Badge>
+          <Badge variant="offline">Offline</Badge>
+        </div>
 
-      <span className="rounded-full bg-offline-bg px-3 py-1 text-sm font-medium text-offline">
-        Offline
-      </span>
+        <StatCard label="Valor estimado" value="R$ 1.250,00" tone="brand" />
+        <StatCard label="PET coletado" value="320 kg" />
 
-      <button className="rounded-xl bg-brand px-8 py-3 text-sm font-bold text-white">
-        Entrar
-      </button>
-    </div>
+        <Card>
+          <p className="font-bold text-ink">Um Card qualquer</p>
+          <p className="text-sm text-ink-muted">Conteúdo dentro da caixa branca.</p>
+        </Card>
+
+        <Input label="E-mail" name="email" type="email" placeholder="voce@email.com" />
+        <Button fullWidth>Entrar</Button>
+        <Button variant="secondary" fullWidth>
+          Criar conta
+        </Button>
+      </main>
+
+      <BottomNav items={navItems} />
+    </BrowserRouter>
   )
 }
 
