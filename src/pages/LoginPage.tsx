@@ -11,7 +11,7 @@ import { APP_NAME } from '../lib/config'
 export function LoginPage() {
   const { user, login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -25,7 +25,7 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const logged = await login(email, password)
+      const logged = await login(identifier, password)
       navigate(homeOf(logged.role), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível entrar')
@@ -47,13 +47,14 @@ export function LoginPage() {
       <Card className="p-5">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="E-mail"
-            name="email"
-            type="email"
+            label="E-mail ou ID de usuário"
+            name="identifier"
+            type="text"
             autoComplete="username"
-            placeholder="voce@ecotriall.coop"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            autoCapitalize="none"
+            placeholder="voce@ecotriall.com ou RV-1024"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             required
           />
 
@@ -91,10 +92,11 @@ export function LoginPage() {
         Esqueci minha senha
       </button>
 
-      {/* Provisório: contas de teste enquanto não existe back */}
+      {/* Provisório: contas de teste enquanto não existe back (senha 123456) */}
       <p className="rounded-xl bg-offline-bg p-3 text-xs text-offline">
-        Contas de teste (senha 123456): coordenador@ecotriall.coop, admin@ecotriall.coop,
-        catador@ecotriall.coop
+        Contas de teste (senha 123456): admin@ecotriall.com (equipe EcoTriall),
+        gerente@ecotriall.com, coordenador@ecotriall.com, catador@ecotriall.com, ou só o ID
+        RV-1025 (catador sem e-mail).
       </p>
     </main>
   )

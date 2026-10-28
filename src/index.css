@@ -15,6 +15,23 @@
   --color-offline: #E65100;
   --color-offline-bg: #FFF3E0;
 
+  /* Materiais: cor forte + fundo suave */
+  --color-plastico: #FBC02D;
+  --color-plastico-soft: #FFFDE7;
+  --color-papel: #1565C0;
+  --color-papel-soft: #E3F2FD;
+  --color-metal: #C62828;
+  --color-metal-soft: #FFEBEE;
+  --color-vidro: #2E7D32;
+  --color-vidro-soft: #E8F5E9;
+  --color-organico: #5D4037;
+  --color-organico-soft: #EFEBE9;
+  --color-outros: #455A64;
+  --color-outros-soft: #ECEFF1;
+
+  /* Dourado (conquistas) */
+  --color-gold: #FFA000;
+
   /* Fonte */
   --font-sans: "Rethink Sans", ui-sans-serif, system-ui, sans-serif;
 }

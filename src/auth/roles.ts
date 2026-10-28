@@ -1,15 +1,19 @@
-export type Role = 'catador' | 'coordenador' | 'admin'
-export type Area = 'admin' | 'catador'
+export type Role = 'admin' | 'gerente' | 'coordenador' | 'catador'
+export type Area = 'plataforma' | 'gestao' | 'catador'
 
 export const ROLE_LABEL: Record<Role, string> = {
-  catador: 'Catador',
-  coordenador: 'Coordenador',
   admin: 'Administrador',
+  gerente: 'Gerente',
+  coordenador: 'Coordenador',
+  catador: 'Catador',
 }
 
-// Coordenador e Administrador usam a mesma área (/admin); Catador tem a sua (/catador)
+// Admin = equipe EcoTriall (plataforma). Gerente e Coordenador usam a mesma área (/gestao),
+// mas com permissões diferentes (veja permissions.ts). Catador tem a sua.
 export function areaOf(role: Role): Area {
-  return role === 'catador' ? 'catador' : 'admin'
+  if (role === 'admin') return 'plataforma'
+  if (role === 'catador') return 'catador'
+  return 'gestao'
 }
 
 export function homeOf(role: Role): string {

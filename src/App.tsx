@@ -1,10 +1,15 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
 import { RequireArea } from './auth/RequireArea'
-import { AdminLayout, CatadorLayout } from './layouts/AppLayouts'
+import { CatadorLayout, GestaoLayout, PlataformaLayout } from './layouts/AppLayouts'
 import { LoginPage } from './pages/LoginPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
-import { MaisPage } from './pages/admin/MaisPage'
+import { MaisPage } from './pages/gestao/MaisPage'
+import { DesempenhoPage } from './pages/catador/DesempenhoPage'
+import { DispositivosPage } from './pages/catador/DispositivosPage'
+import { HistoricoPage } from './pages/catador/HistoricoPage'
+import { HomePage } from './pages/catador/HomePage'
+import { PerfilPage } from './pages/catador/PerfilPage'
 
 function App() {
   return (
@@ -13,9 +18,22 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Coordenador e Administrador */}
-          <Route element={<RequireArea area="admin" />}>
-            <Route path="/admin" element={<AdminLayout />}>
+          {/* Admin: equipe EcoTriall */}
+          <Route element={<RequireArea area="plataforma" />}>
+            <Route path="/plataforma" element={<PlataformaLayout />}>
+              <Route index element={<PlaceholderPage title="Painel da plataforma" />} />
+              <Route path="cooperativas" element={<PlaceholderPage title="Cooperativas" />} />
+              <Route path="cooperativas/nova" element={<PlaceholderPage title="Nova cooperativa" />} />
+              <Route path="cooperativas/:id" element={<PlaceholderPage title="Detalhe da cooperativa" />} />
+              <Route path="dispositivos" element={<PlaceholderPage title="Dispositivos da plataforma" />} />
+              <Route path="catalogo" element={<PlaceholderPage title="Catálogo de materiais" />} />
+              <Route path="perfil" element={<PlaceholderPage title="Perfil" />} />
+            </Route>
+          </Route>
+
+          {/* Gerente e Coordenador */}
+          <Route element={<RequireArea area="gestao" />}>
+            <Route path="/gestao" element={<GestaoLayout />}>
               <Route index element={<PlaceholderPage title="Home" />} />
               <Route path="dashboard" element={<PlaceholderPage title="Dashboard" />} />
               <Route path="composicao" element={<PlaceholderPage title="Composição" />} />
@@ -24,6 +42,8 @@ function App() {
                 path="configuracoes/:categoriaId"
                 element={<PlaceholderPage title="Detalhe da categoria" />}
               />
+              <Route path="equipe" element={<PlaceholderPage title="Desempenho da equipe" />} />
+              <Route path="equipe/:catadorId" element={<PlaceholderPage title="Detalhe do catador" />} />
               <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
               <Route path="dispositivos" element={<PlaceholderPage title="Dispositivos" />} />
               <Route path="correcoes" element={<PlaceholderPage title="Correções" />} />
@@ -36,11 +56,11 @@ function App() {
           {/* Catador */}
           <Route element={<RequireArea area="catador" />}>
             <Route path="/catador" element={<CatadorLayout />}>
-              <Route index element={<PlaceholderPage title="Home" />} />
-              <Route path="historico" element={<PlaceholderPage title="Histórico" />} />
-              <Route path="desempenho" element={<PlaceholderPage title="Desempenho" />} />
-              <Route path="dispositivos" element={<PlaceholderPage title="Dispositivos" />} />
-              <Route path="perfil" element={<PlaceholderPage title="Perfil" />} />
+              <Route index element={<HomePage />} />
+              <Route path="historico" element={<HistoricoPage />} />
+              <Route path="desempenho" element={<DesempenhoPage />} />
+              <Route path="dispositivos" element={<DispositivosPage />} />
+              <Route path="perfil" element={<PerfilPage />} />
             </Route>
           </Route>
 

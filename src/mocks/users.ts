@@ -2,7 +2,8 @@ import type { Role } from '../auth/roles'
 
 export type User = {
   name: string
-  email: string
+  loginId: string // ID de usuário (todo usuário tem)
+  email?: string // opcional: depende da configuração da cooperativa
   role: Role
 }
 
@@ -10,7 +11,9 @@ export type User = {
 export const DEMO_PASSWORD = '123456'
 
 export const MOCK_USERS: User[] = [
-  { name: 'Ana Maria Castro', email: 'coordenador@ecotriall.coop', role: 'coordenador' },
-  { name: 'Carlos Santos', email: 'admin@ecotriall.coop', role: 'admin' },
-  { name: 'João Silva', email: 'catador@ecotriall.coop', role: 'catador' },
+  { name: 'Equipe EcoTriall', loginId: 'EC-0001', email: 'admin@ecotriall.com', role: 'admin' },
+  { name: 'Ana Maria Castro', loginId: 'RV-0001', email: 'gerente@ecotriall.com', role: 'gerente' },
+  { name: 'Carlos Santos', loginId: 'RV-0002', email: 'coordenador@ecotriall.com', role: 'coordenador' },
+  { name: 'João Silva', loginId: 'RV-1024', email: 'catador@ecotriall.com', role: 'catador' },
+  { name: 'Marcos Lima', loginId: 'RV-1025', role: 'catador' }, // sem e-mail: entra só pelo ID
 ]

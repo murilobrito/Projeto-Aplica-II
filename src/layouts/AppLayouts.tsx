@@ -1,35 +1,48 @@
-import { Outlet } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
 import {
   Award,
+  Building2,
   ChartPie,
   Clock,
   Cpu,
   Ellipsis,
   House,
   LayoutDashboard,
+  Library,
   SlidersHorizontal,
   User,
 } from 'lucide-react'
-import { AppHeader } from '../components/AppHeader'
+import { AppHeader, type HeaderVariant } from '../components/AppHeader'
 import { BottomNav, type NavItem } from '../components/BottomNav'
 
-const adminNav: NavItem[] = [
-  { to: '/admin/dashboard', label: 'Painel', icon: LayoutDashboard },
-  { to: '/admin/composicao', label: 'Composição', icon: ChartPie },
-  { to: '/admin', label: 'Home', icon: House, end: true },
-  { to: '/admin/configuracoes', label: 'Config', icon: SlidersHorizontal },
+// Gerente e Coordenador
+const gestaoNav: NavItem[] = [
+  { to: '/gestao/dashboard', label: 'Painel', icon: LayoutDashboard },
+  { to: '/gestao/composicao', label: 'Composição', icon: ChartPie },
+  { to: '/gestao', label: 'Home', icon: House, end: true },
+  { to: '/gestao/configuracoes', label: 'Config', icon: SlidersHorizontal },
   {
-    to: '/admin/mais',
+    to: '/gestao/mais',
     label: 'Mais',
     icon: Ellipsis,
     alsoActive: [
-      '/admin/relatorios',
-      '/admin/dispositivos',
-      '/admin/correcoes',
-      '/admin/usuarios',
-      '/admin/perfil',
+      '/gestao/equipe',
+      '/gestao/relatorios',
+      '/gestao/dispositivos',
+      '/gestao/correcoes',
+      '/gestao/usuarios',
+      '/gestao/perfil',
     ],
   },
+]
+
+// Admin (equipe EcoTriall)
+const plataformaNav: NavItem[] = [
+  { to: '/plataforma', label: 'Painel', icon: LayoutDashboard, end: true },
+  { to: '/plataforma/cooperativas', label: 'Cooperativas', icon: Building2 },
+  { to: '/plataforma/dispositivos', label: 'Dispositivos', icon: Cpu },
+  { to: '/plataforma/catalogo', label: 'Catálogo', icon: Library },
+  { to: '/plataforma/perfil', label: 'Perfil', icon: User },
 ]
 
 const catadorNav: NavItem[] = [
@@ -40,7 +53,7 @@ const catadorNav: NavItem[] = [
   { to: '/catador/perfil', label: 'Perfil', icon: User },
 ]
 
-function Shell({ variant, nav }: { variant: 'admin' | 'catador'; nav: NavItem[] }) {
+function Shell({ variant, nav }: { variant: HeaderVariant; nav: NavItem[] }) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-surface shadow-sm md:border-x md:border-black/5">
       <AppHeader variant={variant} />
@@ -52,10 +65,16 @@ function Shell({ variant, nav }: { variant: 'admin' | 'catador'; nav: NavItem[] 
   )
 }
 
-export function AdminLayout() {
-  return <Shell variant="admin" nav={adminNav} />
+export function GestaoLayout() {
+  return <Shell variant="gestao" nav={gestaoNav} />
+}
+
+export function PlataformaLayout() {
+  return <Shell variant="plataforma" nav={plataformaNav} />
 }
 
 export function CatadorLayout() {
-  return <Shell variant="catador" nav={catadorNav} />
+  const { pathname } = useLocation()
+  // A Home do catador tem um cabeçalho próprio (saudação + sino)
+  return <Shell variant={pathname === '/catador' ? 'catador-home' : 'catador'} nav={catadorNav} />
 }
