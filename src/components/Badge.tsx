@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 type BadgeProps = {
-  variant: 'online' | 'offline' | 'success' | 'warning'
+  variant: 'online' | 'offline' | 'success' | 'warning' | 'danger'
   dot?: boolean // bolinha antes do texto
   className?: string
   children: ReactNode
@@ -12,6 +12,7 @@ const styles = {
   success: 'bg-brand-light text-brand',
   offline: 'bg-offline-bg text-offline',
   warning: 'bg-offline-bg text-offline',
+  danger: 'bg-danger-soft text-danger',
 }
 
 export function Badge({ variant, dot = false, className = '', children }: BadgeProps) {

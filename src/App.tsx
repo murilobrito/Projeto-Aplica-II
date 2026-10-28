@@ -4,6 +4,20 @@ import { RequireArea } from './auth/RequireArea'
 import { CatadorLayout, GestaoLayout, PlataformaLayout } from './layouts/AppLayouts'
 import { LoginPage } from './pages/LoginPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { GestaoProvider } from './gestao/GestaoContext'
+import { GestaoDashboardPage } from './pages/gestao/DashboardPage'
+import { GestaoDispositivosPage } from './pages/gestao/DispositivosPage'
+import { GestaoHomePage } from './pages/gestao/HomePage'
+import { CatadorDetalhePage } from './pages/gestao/CatadorDetalhePage'
+import { CategoriaDetalhePage } from './pages/gestao/CategoriaDetalhePage'
+import { ComposicaoPage } from './pages/gestao/ComposicaoPage'
+import { ConfiguracoesPage } from './pages/gestao/ConfiguracoesPage'
+import { CorrecoesPage } from './pages/gestao/CorrecoesPage'
+import { EquipePage } from './pages/gestao/EquipePage'
+import { NovoUsuarioPage } from './pages/gestao/NovoUsuarioPage'
+import { RelatoriosPage } from './pages/gestao/RelatoriosPage'
+import { UsuariosPage } from './pages/gestao/UsuariosPage'
+import { GestaoPerfilPage } from './pages/gestao/PerfilPage'
 import { MaisPage } from './pages/gestao/MaisPage'
 import { DesempenhoPage } from './pages/catador/DesempenhoPage'
 import { DispositivosPage } from './pages/catador/DispositivosPage'
@@ -33,22 +47,27 @@ function App() {
 
           {/* Gerente e Coordenador */}
           <Route element={<RequireArea area="gestao" />}>
-            <Route path="/gestao" element={<GestaoLayout />}>
-              <Route index element={<PlaceholderPage title="Home" />} />
-              <Route path="dashboard" element={<PlaceholderPage title="Dashboard" />} />
-              <Route path="composicao" element={<PlaceholderPage title="Composição" />} />
-              <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
-              <Route
-                path="configuracoes/:categoriaId"
-                element={<PlaceholderPage title="Detalhe da categoria" />}
-              />
-              <Route path="equipe" element={<PlaceholderPage title="Desempenho da equipe" />} />
-              <Route path="equipe/:catadorId" element={<PlaceholderPage title="Detalhe do catador" />} />
-              <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
-              <Route path="dispositivos" element={<PlaceholderPage title="Dispositivos" />} />
-              <Route path="correcoes" element={<PlaceholderPage title="Correções" />} />
-              <Route path="usuarios" element={<PlaceholderPage title="Usuários" />} />
-              <Route path="perfil" element={<PlaceholderPage title="Perfil" />} />
+            <Route
+              path="/gestao"
+              element={
+                <GestaoProvider>
+                  <GestaoLayout />
+                </GestaoProvider>
+              }
+            >
+              <Route index element={<GestaoHomePage />} />
+              <Route path="dashboard" element={<GestaoDashboardPage />} />
+              <Route path="composicao" element={<ComposicaoPage />} />
+              <Route path="configuracoes" element={<ConfiguracoesPage />} />
+              <Route path="configuracoes/:categoriaId" element={<CategoriaDetalhePage />} />
+              <Route path="equipe" element={<EquipePage />} />
+              <Route path="equipe/:catadorId" element={<CatadorDetalhePage />} />
+              <Route path="relatorios" element={<RelatoriosPage />} />
+              <Route path="dispositivos" element={<GestaoDispositivosPage />} />
+              <Route path="correcoes" element={<CorrecoesPage />} />
+              <Route path="usuarios" element={<UsuariosPage />} />
+              <Route path="usuarios/novo" element={<NovoUsuarioPage />} />
+              <Route path="perfil" element={<GestaoPerfilPage />} />
               <Route path="mais" element={<MaisPage />} />
             </Route>
           </Route>

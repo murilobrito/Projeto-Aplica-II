@@ -29,6 +29,10 @@
   --color-outros: #455A64;
   --color-outros-soft: #ECEFF1;
 
+  /* Erro / inativo */
+  --color-danger: #C62828;
+  --color-danger-soft: #FFEBEE;
+
   /* Dourado (conquistas) */
   --color-gold: #FFA000;
 
