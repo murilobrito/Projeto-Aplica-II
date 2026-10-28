@@ -1,48 +1,53 @@
-import { BrowserRouter } from 'react-router'
-import { House, ChartColumn, Smartphone, User } from 'lucide-react'
-import { Badge } from './components/Badge'
-import { BottomNav } from './components/BottomNav'
-import { Button } from './components/Button'
-import { Card } from './components/Card'
-import { Input } from './components/Input'
-import { StatCard } from './components/StatCard'
-
-const navItems = [
-  { to: '/', label: 'Início', icon: House },
-  { to: '/dashboard', label: 'Painel', icon: ChartColumn },
-  { to: '/dispositivos', label: 'Lixeiras', icon: Smartphone },
-  { to: '/perfil', label: 'Perfil', icon: User },
-]
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { AuthProvider } from './auth/AuthContext'
+import { RequireArea } from './auth/RequireArea'
+import { AdminLayout, CatadorLayout } from './layouts/AppLayouts'
+import { LoginPage } from './pages/LoginPage'
+import { PlaceholderPage } from './pages/PlaceholderPage'
+import { MaisPage } from './pages/admin/MaisPage'
 
 function App() {
   return (
-    <BrowserRouter>
-      <main className="mx-auto flex max-w-md flex-col gap-4 p-6 pb-24">
-        <h1 className="text-3xl font-extrabold text-brand">EcoTriall</h1>
-        <h3> isso é um teste dos componetes</h3>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
 
-        <div className="flex gap-2">
-          <Badge variant="online">Online</Badge>
-          <Badge variant="offline">Offline</Badge>
-        </div>
+          {/* Coordenador e Administrador */}
+          <Route element={<RequireArea area="admin" />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<PlaceholderPage title="Home" />} />
+              <Route path="dashboard" element={<PlaceholderPage title="Dashboard" />} />
+              <Route path="composicao" element={<PlaceholderPage title="Composição" />} />
+              <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
+              <Route
+                path="configuracoes/:categoriaId"
+                element={<PlaceholderPage title="Detalhe da categoria" />}
+              />
+              <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
+              <Route path="dispositivos" element={<PlaceholderPage title="Dispositivos" />} />
+              <Route path="correcoes" element={<PlaceholderPage title="Correções" />} />
+              <Route path="usuarios" element={<PlaceholderPage title="Usuários" />} />
+              <Route path="perfil" element={<PlaceholderPage title="Perfil" />} />
+              <Route path="mais" element={<MaisPage />} />
+            </Route>
+          </Route>
 
-        <StatCard label="Valor estimado" value="R$ 1.250,00" tone="brand" />
-        <StatCard label="PET coletado" value="320 kg" />
+          {/* Catador */}
+          <Route element={<RequireArea area="catador" />}>
+            <Route path="/catador" element={<CatadorLayout />}>
+              <Route index element={<PlaceholderPage title="Home" />} />
+              <Route path="historico" element={<PlaceholderPage title="Histórico" />} />
+              <Route path="desempenho" element={<PlaceholderPage title="Desempenho" />} />
+              <Route path="dispositivos" element={<PlaceholderPage title="Dispositivos" />} />
+              <Route path="perfil" element={<PlaceholderPage title="Perfil" />} />
+            </Route>
+          </Route>
 
-        <Card>
-          <p className="font-bold text-ink">Um Card qualquer</p>
-          <p className="text-sm text-ink-muted">Conteúdo dentro da caixa branca.</p>
-        </Card>
-
-        <Input label="E-mail" name="email" type="email" placeholder="voce@email.com" />
-        <Button fullWidth>Entrar</Button>
-        <Button variant="secondary" fullWidth>
-          Criar conta
-        </Button>
-      </main>
-
-      <BottomNav items={navItems} />
-    </BrowserRouter>
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
