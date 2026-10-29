@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router'
-import { Eye, EyeOff, Leaf } from 'lucide-react'
+import { Link, Navigate, useNavigate } from 'react-router'
+import { Camera, Eye, EyeOff, Leaf } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { homeOf } from '../auth/roles'
 import { Button } from '../components/Button'
@@ -91,6 +91,16 @@ export function LoginPage() {
       <button type="button" className="text-sm font-bold text-brand underline">
         Esqueci minha senha
       </button>
+
+      {/* MVP: abre direto a identificação de objetos pelo celular, sem login */}
+      <Link
+        to="/captura"
+        className="flex items-center justify-center gap-2 rounded-xl border-2 border-brand bg-brand-light py-3 text-sm font-bold text-brand"
+      >
+        <Camera size={18} />
+        Identificar objeto (demonstração)
+      </Link>
+
 
       {/* Provisório: contas de teste enquanto não existe back (senha 123456) */}
       <p className="rounded-xl bg-offline-bg p-3 text-xs text-offline">

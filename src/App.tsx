@@ -24,6 +24,7 @@ import { DispositivosPage } from './pages/catador/DispositivosPage'
 import { HistoricoPage } from './pages/catador/HistoricoPage'
 import { HomePage } from './pages/catador/HomePage'
 import { PerfilPage } from './pages/catador/PerfilPage'
+import { CapturaPage } from './pages/captura/CapturaPage'
 
 function App() {
   return (
@@ -31,6 +32,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* MVP: identificação pelo celular, pública (sem login) */}
+          <Route path="/captura" element={<CapturaPage />} />
 
           {/* Admin: equipe EcoTriall */}
           <Route element={<RequireArea area="plataforma" />}>
