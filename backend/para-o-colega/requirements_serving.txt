@@ -1,0 +1,9 @@
+# Dependências do serviço de inferência (rodar no ecotriall-api).
+# torch/torchvision: use a versão que você já usa no treino.
+torch
+torchvision
+ultralytics
+pillow
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
