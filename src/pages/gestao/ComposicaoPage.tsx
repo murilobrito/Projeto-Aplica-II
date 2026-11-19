@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Download } from 'lucide-react'
 import { FilterChips } from '../../components/FilterChips'
 import { Card } from '../../components/Card'
 import { useGestao } from '../../gestao/GestaoContext'
+import { apiDashboard, type DashboardData } from '../../lib/api'
 import { brl, int, kg } from '../../lib/format'
 import { MATERIALS } from '../../lib/materials'
 import { MIX, TOTAL_KG } from '../../mocks/gestao'
@@ -19,10 +20,23 @@ const PERIODS: { value: Period; label: string }[] = [
 export function ComposicaoPage() {
   const { categories } = useGestao()
   const [period, setPeriod] = useState<Period>('30')
-  const total = TOTAL_KG[period]
+  const [data, setData] = useState<DashboardData | null>(null)
+
+  useEffect(() => {
+    let ativo = true
+    apiDashboard().then((d) => { if (ativo) setData(d) }).catch(() => {})
+    return () => {
+      ativo = false
+    }
+  }, [])
+
+  // Mock como fallback enquanto o backend não responde.
+  const totalKg = data?.totalKg ?? TOTAL_KG
+  const mix = data?.mix ?? MIX
+  const total = totalKg[period]
 
   // valor estimado = kg do material x preço base da categoria (editado em Configurações)
-  const rows = MIX.map((m) => {
+  const rows = mix.map((m) => {
     const weight = (total * m.percent) / 100
     const price = categories.find((c) => c.id === m.material)?.basePrice ?? 0
     return { ...m, weight, value: weight * price }

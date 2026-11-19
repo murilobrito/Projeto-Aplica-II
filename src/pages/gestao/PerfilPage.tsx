@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Lock, Pencil } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext'
 import { ROLE_LABEL } from '../../auth/roles'
@@ -26,6 +26,13 @@ export function GestaoPerfilPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+
+  // Quando a cooperativa chega do backend, reflete nos campos do formulário.
+  useEffect(() => {
+    setRazao(coop.razao)
+    setCnpj(coop.cnpj)
+    setEndereco(coop.endereco)
+  }, [coop.razao, coop.cnpj, coop.endereco])
 
   if (!user) return null
   const canEditCoop = can(user.role, 'cooperativa:editar')

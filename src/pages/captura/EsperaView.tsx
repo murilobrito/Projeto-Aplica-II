@@ -5,7 +5,7 @@ import { CAPTURE_WAIT_MS } from '../../mocks/captura'
 type Props = {
   stream: MediaStream | null
   cameraFailed: boolean
-  onDetect: () => void
+  onDetect: (foto: Blob | null) => void
 }
 
 export function EsperaView({ stream, cameraFailed, onDetect }: Props) {
@@ -15,10 +15,27 @@ export function EsperaView({ stream, cameraFailed, onDetect }: Props) {
     if (videoRef.current) videoRef.current.srcObject = stream
   }, [stream])
 
+  // Tira um frame do vídeo para enviar ao backend. Sem câmera, devolve null
+  // (o fluxo segue em modo demonstração).
+  function capturar(): Promise<Blob | null> {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return Promise.resolve(null)
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    return new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.85))
+  }
+
+  function disparar() {
+    void capturar().then(onDetect)
+  }
+
   // A "IA" reconhece sozinha depois de um tempo
   useEffect(() => {
-    const timer = setTimeout(onDetect, CAPTURE_WAIT_MS)
+    const timer = setTimeout(disparar, CAPTURE_WAIT_MS)
     return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onDetect])
 
   const ready = stream !== null
@@ -42,7 +59,7 @@ export function EsperaView({ stream, cameraFailed, onDetect }: Props) {
         <div className="absolute inset-x-0 top-1/2 flex -translate-y-[58%] flex-col items-center gap-5">
           {/* Tocar na moldura reconhece o objeto na hora */}
           <button
-            onClick={onDetect}
+            onClick={disparar}
             aria-label="Reconhecer objeto agora"
             className="flex size-56 items-center justify-center rounded-[2rem] border-4 border-brand"
           >

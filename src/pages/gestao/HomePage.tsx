@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import {
   ChartColumn,
@@ -12,8 +13,10 @@ import {
 import { useAuth } from '../../auth/AuthContext'
 import { ROLE_LABEL } from '../../auth/roles'
 import { Card } from '../../components/Card'
+import { useGestao } from '../../gestao/GestaoContext'
+import { apiDashboard } from '../../lib/api'
 import { formatToday } from '../../lib/date'
-import { DEVICES, ITEMS_TODAY } from '../../mocks/gestao'
+import { ITEMS_TODAY } from '../../mocks/gestao'
 
 const SHORTCUTS = [
   { to: '/gestao/dashboard', label: 'Dashboard', hint: 'Métricas e indicadores', icon: ChartColumn },
@@ -28,9 +31,20 @@ const SHORTCUTS = [
 
 export function GestaoHomePage() {
   const { user } = useAuth()
+  const { devices } = useGestao()
+  const [itens, setItens] = useState<number | null>(null)
+
+  useEffect(() => {
+    let ativo = true
+    apiDashboard().then((d) => { if (ativo) setItens(d.itemsToday) }).catch(() => {})
+    return () => {
+      ativo = false
+    }
+  }, [])
+
   if (!user) return null
 
-  const active = DEVICES.filter((d) => d.active).length
+  const active = devices.filter((d) => d.active).length
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,12 +59,12 @@ export function GestaoHomePage() {
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <p className="text-[11px] font-medium uppercase text-ink-muted">Itens hoje</p>
-          <p className="mt-1 text-xl font-extrabold text-ink">{ITEMS_TODAY} un</p>
+          <p className="mt-1 text-xl font-extrabold text-ink">{itens ?? ITEMS_TODAY} un</p>
         </Card>
         <div className="rounded-2xl border border-brand bg-brand-light p-4">
           <p className="text-[11px] font-medium uppercase text-brand">Dispositivos online</p>
           <p className="mt-1 text-xl font-extrabold text-ink">
-            {active} / {DEVICES.length} ativos
+            {active} / {devices.length} ativos
           </p>
         </div>
       </div>

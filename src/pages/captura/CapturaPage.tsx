@@ -4,7 +4,11 @@ import { Leaf, LogOut } from 'lucide-react'
 import { COOP_NAME } from '../../lib/config'
 import { MATERIALS, type MaterialId } from '../../lib/materials'
 import { useCamera } from '../../lib/useCamera'
+import { apiClassificar, apiCorrecao } from '../../lib/api'
 import { fakeClassify, type Detection } from '../../mocks/captura'
+
+// 1x1 JPEG mínimo (SOI+EOI): enviado quando a câmera não está disponível.
+const FOTO_VAZIA = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' })
 import { ConfirmacaoView } from './ConfirmacaoView'
 import { CorrecaoView } from './CorrecaoView'
 import { EsperaView } from './EsperaView'
@@ -20,12 +24,26 @@ export function CapturaPage() {
   const [detection, setDetection] = useState<Detection | null>(null)
   const [registered, setRegistered] = useState<{ material: MaterialId; title: string } | null>(null)
   const lastMaterial = useRef<MaterialId | undefined>(undefined)
+  const detectando = useRef(false)
 
-  const detect = useCallback(() => {
-    const result = fakeClassify(lastMaterial.current)
-    lastMaterial.current = result.material
-    setDetection(result)
-    setStep('resultado')
+  // Envia a foto ao backend (/classificar). Se o backend estiver fora,
+  // cai no mock para a demonstração não travar.
+  const detect = useCallback(async (foto: Blob | null) => {
+    if (detectando.current) return
+    detectando.current = true
+    try {
+      let result: Detection
+      try {
+        result = await apiClassificar(foto ?? FOTO_VAZIA)
+      } catch {
+        result = fakeClassify(lastMaterial.current)
+      }
+      lastMaterial.current = result.material
+      setDetection(result)
+      setStep('resultado')
+    } finally {
+      detectando.current = false
+    }
   }, [])
 
   const next = useCallback(() => setStep('espera'), [])
@@ -36,8 +54,18 @@ export function CapturaPage() {
     setStep('confirmacao')
   }
 
-  // Futuro: aqui o app envia { detectado, corrigido } para a API treinar o modelo
+  // Envia { detectado, corrigido } para a API: vira dado rotulado para re-treino.
   function correct(material: MaterialId) {
+    if (detection) {
+      apiCorrecao({
+        detectado: detection.material,
+        corrigido: material,
+        title: detection.title,
+        confidence: detection.confidence,
+      }).catch(() => {
+        // correção é melhoria do modelo, não bloqueia o fluxo do catador
+      })
+    }
     setRegistered({ material, title: MATERIALS[material].label })
     setStep('confirmacao')
   }

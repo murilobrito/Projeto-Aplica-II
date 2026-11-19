@@ -27,9 +27,9 @@ export function NovoUsuarioPage() {
   const allowed = (['gerente', 'coordenador', 'catador'] as const).filter((r) => can(user.role, `usuarios:criar-${r}`))
   const freeDevices = devices.filter((d) => d.active && !d.catadorId)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    addUser({ name, role, email, phone, deviceId: deviceId ? Number(deviceId) : null })
+    await addUser({ name, role, email, phone, deviceId: deviceId ? Number(deviceId) : null })
     navigate('/gestao/usuarios')
   }
 

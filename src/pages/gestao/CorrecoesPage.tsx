@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowRight, Cpu } from 'lucide-react'
 import { Card } from '../../components/Card'
 import { FilterChips } from '../../components/FilterChips'
-import { CORRECTIONS } from '../../mocks/gestao'
+import { apiCorrecoes } from '../../lib/api'
+import type { Correction } from '../../mocks/gestao'
 
 type Period = 'hoje' | 'semana' | 'mes'
 
@@ -15,7 +16,17 @@ const MAX_DAYS: Record<Period, number> = { hoje: 0, semana: 7, mes: 30 }
 
 export function CorrecoesPage() {
   const [period, setPeriod] = useState<Period>('hoje')
-  const list = CORRECTIONS.filter((c) => c.ageDays <= MAX_DAYS[period])
+  const [correcoes, setCorrecoes] = useState<Correction[]>([])
+
+  useEffect(() => {
+    let ativo = true
+    apiCorrecoes().then((c) => { if (ativo) setCorrecoes(c) }).catch(() => {})
+    return () => {
+      ativo = false
+    }
+  }, [])
+
+  const list = correcoes.filter((c) => c.ageDays <= MAX_DAYS[period])
 
   return (
     <div className="flex flex-col gap-4">

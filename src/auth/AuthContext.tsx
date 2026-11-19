@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import { DEMO_PASSWORD, MOCK_USERS, type User } from '../mocks/users'
+import { apiLogin, setToken } from '../lib/api'
+import { type User } from '../mocks/users'
 
 const STORAGE_KEY = 'ecotriall:user:v2'
 
@@ -34,20 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // "identifier" pode ser o e-mail OU o ID de usuário
   async function login(identifier: string, password: string) {
-    await new Promise((resolve) => setTimeout(resolve, 400)) // simula a rede
-    const typed = identifier.trim().toLowerCase()
-    const found = MOCK_USERS.find(
-      (u) => u.email?.toLowerCase() === typed || u.loginId.toLowerCase() === typed,
-    )
-    if (!found || password !== DEMO_PASSWORD) {
-      throw new Error('E-mail/ID ou senha incorretos')
-    }
-    saveUser(found)
-    setUser(found)
-    return found
+    const { user: autenticado, token } = await apiLogin(identifier, password)
+    setToken(token)
+    saveUser(autenticado)
+    setUser(autenticado)
+    return autenticado
   }
 
   function logout() {
+    setToken(null)
     saveUser(null)
     setUser(null)
   }
