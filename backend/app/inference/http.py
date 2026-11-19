@@ -8,7 +8,7 @@ from app.materiais import CLASSES_MODELO_PARA_MATERIAL, material_valido
 class InferenciaHTTP:
     """Fala com o serviço de inferência do colega (POST {url}/predict).
 
-    Contrato esperado da resposta (ver para-o-colega/CONTRATO_INFERENCIA.md):
+    Contrato esperado da resposta (ver integracao-modelo/CONTRATO_INFERENCIA.md):
         {
           "material": "plastico",   # já em PT, ou uma classe do modelo (cardboard...)
           "title": "Garrafa PET",

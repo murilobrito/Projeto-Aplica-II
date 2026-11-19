@@ -5,7 +5,7 @@ A classificação de materiais vem de um **serviço de inferência separado** (o
 `ecotriall-api`); por padrão o backend usa um **mock**, então roda sem depender do modelo.
 
 - **Stack:** FastAPI + SQLModel + JWT. Banco SQLite por padrão (troque para Postgres numa variável).
-- **Contrato com a IA:** ver [`para-o-colega/CONTRATO_INFERENCIA.md`](para-o-colega/CONTRATO_INFERENCIA.md).
+- **Contrato com a IA:** ver [`integracao-modelo/CONTRATO_INFERENCIA.md`](integracao-modelo/CONTRATO_INFERENCIA.md).
 
 ## Rodar (Windows / PowerShell)
 
