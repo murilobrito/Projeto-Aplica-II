@@ -55,7 +55,7 @@ export function GestaoLayout() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-white px-4 py-3">
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-white px-4 py-3 print:hidden">
           <button
             className="flex size-10 items-center justify-center rounded-full bg-brand-light text-brand lg:hidden"
             onClick={() => setDrawerAberto(true)}

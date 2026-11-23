@@ -40,7 +40,7 @@ export function GestaoSidebar({ className = '', onNavigate }: Props) {
   const { user, logout } = useAuth()
 
   return (
-    <aside className={`flex w-72 shrink-0 flex-col border-r border-black/5 bg-white ${className}`}>
+    <aside className={`flex w-72 shrink-0 flex-col border-r border-black/5 bg-white print:hidden ${className}`}>
       <div className="flex items-center gap-3 border-b border-black/5 px-5 py-4">
         <span className="flex size-10 items-center justify-center rounded-xl bg-brand text-white">
           <Leaf size={20} />

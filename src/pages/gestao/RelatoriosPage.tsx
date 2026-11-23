@@ -1,114 +1,150 @@
-import { useState, type FormEvent } from 'react'
-import { Download, Plus } from 'lucide-react'
-import { useAuth } from '../../auth/AuthContext'
-import { can } from '../../auth/permissions'
-import { Button } from '../../components/Button'
+import { useEffect, useState } from 'react'
+import { Download, Printer } from 'lucide-react'
 import { Card } from '../../components/Card'
-import { Modal } from '../../components/Modal'
-import { Select } from '../../components/Select'
-import { REPORT_PERIODS, REPORT_TYPES, REPORTS, type Report } from '../../mocks/gestao'
+import { FilterChips } from '../../components/FilterChips'
+import { useGestao } from '../../gestao/GestaoContext'
+import { apiDashboard, type DashboardData } from '../../lib/api'
+import { brl, int, kg } from '../../lib/format'
+import { MATERIALS } from '../../lib/materials'
+import { MIX, TOTAL_KG } from '../../mocks/gestao'
+
+type Periodo = '7' | '30' | '90'
+
+const PERIODOS: { value: Periodo; label: string }[] = [
+  { value: '7', label: '7 dias' },
+  { value: '30', label: '30 dias' },
+  { value: '90', label: '90 dias' },
+]
 
 export function RelatoriosPage() {
-  const { user } = useAuth()
-  const [reports, setReports] = useState<Report[]>(REPORTS)
-  const [creating, setCreating] = useState(false)
-  const [typeId, setTypeId] = useState('fechamento')
-  const [period, setPeriod] = useState(REPORT_PERIODS[1])
-  const [notice, setNotice] = useState<string | null>(null)
-  if (!user) return null
+  const { categories, coop } = useGestao()
+  const [periodo, setPeriodo] = useState<Periodo>('30')
+  const [data, setData] = useState<DashboardData | null>(null)
 
-  // Relatório financeiro: só o gerente. O coordenador gera apenas os operacionais.
-  const canFinancial = can(user.role, 'relatorios:financeiro')
-  const types = REPORT_TYPES.filter((t) => !t.financial || canFinancial)
-  const visible = reports.filter((r) => !r.financial || canFinancial)
-
-  function handleCreate(e: FormEvent) {
-    e.preventDefault()
-    const type = types.find((t) => t.id === typeId) ?? types[0]
-    const report: Report = {
-      id: Date.now(),
-      title: type.label,
-      format: type.format,
-      period,
-      status: type.financial ? 'email' : 'ready',
-      financial: type.financial,
+  useEffect(() => {
+    let ativo = true
+    apiDashboard().then((d) => ativo && setData(d)).catch(() => {})
+    return () => {
+      ativo = false
     }
-    setReports((prev) => [report, ...prev])
-    setCreating(false)
-    setNotice(`Relatório "${type.label}" gerado.`)
+  }, [])
+
+  const mix = data?.mix ?? MIX
+  const totalKg = (data?.totalKg ?? TOTAL_KG)[periodo]
+
+  const linhas = mix.map((m) => {
+    const peso = (totalKg * m.percent) / 100
+    const preco = categories.find((c) => c.id === m.material)?.basePrice ?? 0
+    return { material: m.material, percent: m.percent, peso, preco, valor: peso * preco }
+  })
+  const valorTotal = linhas.reduce((soma, l) => soma + l.valor, 0)
+
+  function baixarCsv() {
+    const nome = PERIODOS.find((p) => p.value === periodo)?.label ?? periodo
+    const corpo = [
+      ['Material', 'Peso (kg)', 'Participacao (%)', 'Preco base (R$/kg)', 'Valor estimado (R$)'],
+      ...linhas.map((l) => [MATERIALS[l.material].label, l.peso.toFixed(2), String(l.percent), l.preco.toFixed(2), l.valor.toFixed(2)]),
+      ['Total', totalKg.toFixed(2), '100', '', valorTotal.toFixed(2)],
+    ]
+    // ponto-e-vírgula e BOM para o Excel em pt-BR abrir com acento e colunas certas
+    const csv = '﻿' + corpo.map((c) => c.join(';')).join('\r\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `composicao-${nome.replace(' ', '-')}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="rounded-2xl bg-brand p-5 text-white">
-        <h1 className="text-xl font-extrabold">Gerador de Exportações</h1>
-        <p className="mt-2 text-sm opacity-90">
-          Crie novos relatórios customizados filtrando por período, tipo de dispositivo e categoria de
-          cooperados.
-        </p>
-        <button
-          onClick={() => setCreating(true)}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-bold text-brand"
-        >
-          <Plus size={18} />
-          {canFinancial ? 'Gerar Novo Relatório' : 'Gerar Relatório Operacional'}
-        </button>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-ink">Relatório de composição</h1>
+          <p className="text-sm text-ink-muted">{coop.razao}</p>
+        </div>
+        <div className="flex gap-2 print:hidden">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-bold text-ink"
+          >
+            <Printer size={16} />
+            Imprimir / PDF
+          </button>
+          <button
+            onClick={baixarCsv}
+            className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-white"
+          >
+            <Download size={16} />
+            Baixar CSV
+          </button>
+        </div>
       </div>
 
-      {notice && (
-        <p role="status" className="rounded-xl bg-brand-light p-3 text-sm font-bold text-brand">
-          {notice}
-        </p>
-      )}
+      <div className="print:hidden">
+        <FilterChips options={PERIODOS} value={periodo} onChange={setPeriodo} />
+      </div>
 
-      <h2 className="text-sm font-extrabold text-ink">Relatórios Disponíveis</h2>
-      <ul className="flex flex-col gap-3">
-        {visible.map((r) => (
-          <li key={r.id}>
-            <Card>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="rounded bg-black/5 px-2 py-0.5 font-bold text-ink-muted">{r.format}</span>
-                <span className="font-bold text-brand">
-                  {r.status === 'ready' ? 'Pronto para download' : 'Enviado por e-mail'}
-                </span>
-              </div>
-              <p className="mt-2 font-extrabold text-ink">{r.title}</p>
-              <p className="text-sm text-ink-muted">Período: {r.period}</p>
-              {r.status === 'ready' && (
-                <button
-                  onClick={() => setNotice(`Download de "${r.title}" iniciado (simulado).`)}
-                  className="mt-3 flex w-full items-center justify-center gap-2 border-t border-black/5 pt-3 text-sm font-bold text-brand"
-                >
-                  <Download size={16} />
-                  Baixar Arquivo
-                </button>
-              )}
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">Volume no período</p>
+          <p className="mt-1 text-2xl font-extrabold text-ink">{int(Math.round(totalKg))} kg</p>
+        </Card>
+        <Card>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">Materiais</p>
+          <p className="mt-1 text-2xl font-extrabold text-ink">{linhas.length}</p>
+        </Card>
+        <div className="rounded-2xl border border-brand bg-brand-light p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-brand">Valor estimado</p>
+          <p className="mt-1 text-2xl font-black text-ink">{brl(valorTotal)}</p>
+        </div>
+      </div>
 
-      {creating && (
-        <Modal title="Gerar relatório" onClose={() => setCreating(false)}>
-          <form onSubmit={handleCreate} className="flex flex-col gap-3">
-            <Select label="Tipo de relatório" name="tipo" value={typeId} onChange={(e) => setTypeId(e.target.value)}>
-              {types.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label} ({t.format})
-                </option>
-              ))}
-            </Select>
-            <Select label="Período" name="periodo" value={period} onChange={(e) => setPeriod(e.target.value)}>
-              {REPORT_PERIODS.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </Select>
-            <Button type="submit" fullWidth>
-              Gerar
-            </Button>
-          </form>
-        </Modal>
-      )}
+      <Card className="overflow-x-auto p-0">
+        <table className="w-full min-w-[32rem] text-sm">
+          <thead>
+            <tr className="border-b border-black/5 text-left text-[11px] uppercase text-ink-muted">
+              <th className="px-4 py-3 font-bold">Material</th>
+              <th className="px-4 py-3 text-right font-bold">Peso</th>
+              <th className="px-4 py-3 text-right font-bold">Participação</th>
+              <th className="px-4 py-3 text-right font-bold">Preço base</th>
+              <th className="px-4 py-3 text-right font-bold">Valor estimado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l) => {
+              const m = MATERIALS[l.material]
+              return (
+                <tr key={l.material} className="border-b border-black/5">
+                  <td className="px-4 py-3">
+                    <span className="flex items-center gap-2 font-bold text-ink">
+                      <span className={`size-3 rounded-full ${m.solid}`} />
+                      {m.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-ink-muted">{kg(l.peso)}</td>
+                  <td className="px-4 py-3 text-right text-ink-muted">{l.percent}%</td>
+                  <td className="px-4 py-3 text-right text-ink-muted">{brl(l.preco)}/kg</td>
+                  <td className="px-4 py-3 text-right font-bold text-brand">{brl(l.valor)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="bg-surface font-extrabold text-ink">
+              <td className="px-4 py-3">Total</td>
+              <td className="px-4 py-3 text-right">{kg(totalKg)}</td>
+              <td className="px-4 py-3 text-right">100%</td>
+              <td className="px-4 py-3" />
+              <td className="px-4 py-3 text-right text-brand">{brl(valorTotal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </Card>
+
+      <p className="text-xs text-ink-subtle">
+        Valores estimados a partir do mix coletado e do preço base de cada material, ajustável em Configurações.
+      </p>
     </div>
   )
 }
