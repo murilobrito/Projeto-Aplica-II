@@ -56,7 +56,7 @@ export function GestaoHomePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:max-w-xl">
         <Card>
           <p className="text-[11px] font-medium uppercase text-ink-muted">Itens hoje</p>
           <p className="mt-1 text-xl font-extrabold text-ink">{itens ?? ITEMS_TODAY} un</p>
@@ -69,7 +69,7 @@ export function GestaoHomePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {SHORTCUTS.map(({ to, label, hint, icon: Icon }) => (
           <Link key={to} to={to}>
             <Card className="flex h-full flex-col gap-3">

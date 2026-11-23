@@ -25,7 +25,8 @@ export function GestaoDashboardPage() {
   const average = dailyKg.reduce((sum, v) => sum + v, 0) / dailyKg.length
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {kpis.map((k) => (
         <div
           key={k.id}
@@ -42,6 +43,7 @@ export function GestaoDashboardPage() {
           </div>
         </div>
       ))}
+      </div>
 
       <Card>
         <div className="flex items-center justify-between">
