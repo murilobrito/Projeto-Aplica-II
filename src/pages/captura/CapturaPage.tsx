@@ -1,38 +1,46 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { Leaf, LogOut } from 'lucide-react'
+import { Check, Leaf, LogOut } from 'lucide-react'
 import { COOP_NAME } from '../../lib/config'
 import { MATERIALS, type MaterialId } from '../../lib/materials'
 import { useCamera } from '../../lib/useCamera'
 import { apiClassificar, apiCorrecao } from '../../lib/api'
-import { fakeClassify, type Detection } from '../../mocks/captura'
-import { ConfirmacaoView } from './ConfirmacaoView'
-import { CorrecaoView } from './CorrecaoView'
-import { EsperaView } from './EsperaView'
-import { NaoIdentificadoView } from './NaoIdentificadoView'
-import { ResultadoView } from './ResultadoView'
+import { CAPTURE_WAIT_MS, CONFIRM_MS, fakeClassify, type Detection } from '../../mocks/captura'
 import { TurnoPanel, type ItemTurno } from './TurnoPanel'
 
-// 1x1 JPEG mínimo (SOI+EOI): enviado quando a câmera não está disponível.
 const FOTO_VAZIA = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' })
+const ORDEM: MaterialId[] = ['plastico', 'papel', 'metal', 'vidro', 'organico', 'outros']
 
 type Step = 'espera' | 'resultado' | 'naoid' | 'correcao' | 'confirmacao'
 
-// Estação de triagem (rota pública /captura): captura à esquerda, turno à direita no
-// desktop; no celular vira a tela de captura sozinha.
 export function CapturaPage() {
   const { stream, failed, cameras, deviceId, setDeviceId } = useCamera()
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [step, setStep] = useState<Step>('espera')
   const [detection, setDetection] = useState<Detection | null>(null)
-  const [registered, setRegistered] = useState<{ material: MaterialId; title: string } | null>(null)
   const [turno, setTurno] = useState<ItemTurno[]>([])
   const lastMaterial = useRef<MaterialId | undefined>(undefined)
   const detectando = useRef(false)
 
-  const detect = useCallback(async (foto: Blob | null) => {
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.srcObject = stream
+  }, [stream])
+
+  const capturar = useCallback((): Promise<Blob | null> => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return Promise.resolve(null)
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d')?.drawImage(video, 0, 0)
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
+  }, [])
+
+  const detect = useCallback(async () => {
     if (detectando.current) return
     detectando.current = true
     try {
+      const foto = await capturar()
       let result: Detection
       try {
         result = await apiClassificar(foto ?? FOTO_VAZIA)
@@ -49,12 +57,21 @@ export function CapturaPage() {
     } finally {
       detectando.current = false
     }
-  }, [])
+  }, [capturar])
 
-  const next = useCallback(() => setStep('espera'), [])
+  useEffect(() => {
+    if (step !== 'espera') return
+    const timer = setTimeout(detect, CAPTURE_WAIT_MS)
+    return () => clearTimeout(timer)
+  }, [step, detect])
+
+  useEffect(() => {
+    if (step !== 'confirmacao') return
+    const timer = setTimeout(() => setStep('espera'), CONFIRM_MS)
+    return () => clearTimeout(timer)
+  }, [step])
 
   function registrar(material: MaterialId, title: string) {
-    setRegistered({ material, title })
     setTurno((prev) => [{ material, title, at: Date.now() }, ...prev])
     setStep('confirmacao')
   }
@@ -63,7 +80,6 @@ export function CapturaPage() {
     if (detection) registrar(detection.material, detection.title)
   }
 
-  // A correção do catador também vira dado rotulado para re-treino.
   function correct(material: MaterialId) {
     if (detection) {
       apiCorrecao({
@@ -76,63 +92,168 @@ export function CapturaPage() {
     registrar(material, MATERIALS[material].label)
   }
 
-  const capturaBg =
-    step === 'resultado' && detection
-      ? MATERIALS[detection.material].soft
-      : step === 'confirmacao'
-        ? 'bg-brand-light'
-        : 'bg-white'
+  const status = stream ? 'CÂMERA PRONTA' : failed ? 'MODO DEMONSTRAÇÃO' : 'ABRINDO CÂMERA...'
 
   return (
     <div className="bg-surface lg:flex lg:min-h-dvh lg:gap-6 lg:p-6">
-      <div
-        className={`mx-auto flex min-h-dvh max-w-md flex-col gap-3 p-4 transition-colors lg:mx-0 lg:min-h-0 lg:max-w-xl lg:flex-1 lg:rounded-[2rem] lg:p-6 ${capturaBg}`}
-      >
-        {step !== 'correcao' && step !== 'confirmacao' && (
-          <header className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-full bg-brand text-white">
-                <Leaf size={16} />
-              </span>
-              <span className="text-sm font-extrabold text-ink">{COOP_NAME}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full bg-brand-light px-3 py-1 text-[11px] font-bold text-brand">
-                <span className="size-1.5 rounded-full bg-brand" />
-                ATIVO
-              </span>
-              <Link
-                to="/login"
-                className="flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-ink shadow-sm"
-              >
-                <LogOut size={12} />
-                Sair
-              </Link>
-            </div>
-          </header>
-        )}
+      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 p-4 lg:mx-0 lg:min-h-0 lg:max-w-none lg:flex-1 lg:p-0">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex size-9 items-center justify-center rounded-full bg-brand text-white">
+              <Leaf size={18} />
+            </span>
+            <span className="font-extrabold text-ink">{COOP_NAME}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 rounded-full bg-brand-light px-3 py-1 text-[11px] font-bold text-brand">
+              <span className="size-1.5 rounded-full bg-brand" />
+              ATIVO
+            </span>
+            <Link
+              to="/login"
+              className="flex items-center gap-1 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-ink shadow-sm"
+            >
+              <LogOut size={12} />
+              Sair
+            </Link>
+          </div>
+        </header>
 
-        {step === 'espera' && (
-          <EsperaView
-            stream={stream}
-            cameraFailed={failed}
-            cameras={cameras}
-            deviceId={deviceId}
-            onPickCamera={setDeviceId}
-            onDetect={detect}
-          />
-        )}
-        {step === 'resultado' && detection && (
-          <ResultadoView detection={detection} onConfirm={confirm} onCorrect={() => setStep('correcao')} />
-        )}
-        {step === 'naoid' && <NaoIdentificadoView onRetry={next} />}
-        {step === 'correcao' && <CorrecaoView onPick={correct} onBack={() => setStep('resultado')} />}
-        {step === 'confirmacao' && registered && (
-          <ConfirmacaoView material={registered.material} title={registered.title} onDone={next} />
-        )}
+        <div className="relative flex-1 overflow-hidden rounded-[2rem] bg-stone-800">
+          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 size-full object-cover" />
+
+          <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[11px] font-bold text-white">
+            <span className={`size-2 rounded-full ${stream ? 'bg-green-400' : 'bg-offline'}`} />
+            {status}
+          </span>
+
+          {cameras.length > 1 && (
+            <select
+              value={deviceId ?? ''}
+              onChange={(e) => setDeviceId(e.target.value || undefined)}
+              aria-label="Escolher câmera"
+              className="absolute right-4 top-4 max-w-[45%] truncate rounded-full bg-black/60 px-3 py-1.5 text-[11px] font-bold text-white"
+            >
+              <option value="">Câmera automática</option>
+              {cameras.map((c, i) => (
+                <option key={c.deviceId} value={c.deviceId}>
+                  {c.label || `Câmera ${i + 1}`}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {step === 'espera' && (
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/70 to-transparent p-6 pt-16 text-center text-white">
+              <p className="text-lg font-extrabold">Aproxime o item da câmera</p>
+              <button onClick={detect} className="rounded-full bg-brand px-6 py-3 text-sm font-extrabold text-white active:opacity-90">
+                Classificar agora
+              </button>
+            </div>
+          )}
+
+          {step === 'resultado' && detection && (
+            <ResultadoOverlay detection={detection} onConfirm={confirm} onCorrect={() => setStep('correcao')} />
+          )}
+
+          {step === 'naoid' && (
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/80 to-transparent p-6 pt-16 text-center text-white">
+              <p className="text-lg font-extrabold">Não reconheci o item</p>
+              <p className="text-sm text-white/80">Aproxime o item e tente de novo.</p>
+              <button onClick={() => setStep('espera')} className="rounded-full bg-white px-6 py-3 text-sm font-extrabold text-ink active:opacity-90">
+                Tentar de novo
+              </button>
+            </div>
+          )}
+
+          {step === 'correcao' && <CorrecaoOverlay onPick={correct} onBack={() => setStep('resultado')} />}
+
+          {step === 'confirmacao' && (
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-3 bg-gradient-to-t from-brand/95 to-transparent p-6 pt-16 text-white">
+              <span className="flex size-10 items-center justify-center rounded-full bg-white text-brand">
+                <Check size={22} />
+              </span>
+              <p className="text-lg font-black">Item registrado!</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <TurnoPanel turno={turno} className="hidden lg:flex lg:w-96 lg:shrink-0" />
+    </div>
+  )
+}
+
+function ResultadoOverlay({
+  detection,
+  onConfirm,
+  onCorrect,
+}: {
+  detection: Detection
+  onConfirm: () => void
+  onCorrect: () => void
+}) {
+  const m = MATERIALS[detection.material]
+  return (
+    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/60 to-transparent p-6 pt-20">
+      <div className="mx-auto flex max-w-xl flex-col gap-4">
+        <div className="flex items-center gap-4 text-white">
+          <span
+            className={`flex size-16 shrink-0 items-center justify-center rounded-2xl ${m.solid} ${
+              detection.material === 'plastico' ? 'text-ink' : 'text-white'
+            }`}
+          >
+            <m.icon size={32} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-2xl font-black">{m.label}</p>
+            <p className="truncate text-sm text-white/80">{detection.title}</p>
+          </div>
+          <span className="ml-auto flex shrink-0 gap-1" aria-label={`Confiança ${detection.confidence} de 5`}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span key={n} className={`size-2.5 rounded-full ${n <= detection.confidence ? 'bg-brand' : 'bg-white/30'}`} />
+            ))}
+          </span>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onCorrect} className="flex-1 rounded-2xl border-2 border-white/70 py-3 font-extrabold text-white active:opacity-90">
+            Corrigir
+          </button>
+          <button onClick={onConfirm} className="flex-1 rounded-2xl bg-brand py-3 font-extrabold text-white active:opacity-90">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CorrecaoOverlay({ onPick, onBack }: { onPick: (material: MaterialId) => void; onBack: () => void }) {
+  return (
+    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-6 pt-16">
+      <div className="mx-auto max-w-xl">
+        <p className="mb-3 text-center font-extrabold text-white">Qual é o material?</p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {ORDEM.map((id) => {
+            const m = MATERIALS[id]
+            return (
+              <button
+                key={id}
+                onClick={() => onPick(id)}
+                className={`flex flex-col items-center gap-2 rounded-2xl ${m.soft} px-2 py-3 active:scale-95`}
+              >
+                <span className={`flex size-10 items-center justify-center rounded-xl text-white ${m.solid}`}>
+                  <m.icon size={20} />
+                </span>
+                <span className="text-xs font-bold text-ink">{m.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <button onClick={onBack} className="mt-3 w-full text-sm font-bold text-white/80">
+          Voltar
+        </button>
+      </div>
     </div>
   )
 }
