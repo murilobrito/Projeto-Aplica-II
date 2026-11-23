@@ -12,9 +12,10 @@ const FOTO_VAZIA = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 
 import { ConfirmacaoView } from './ConfirmacaoView'
 import { CorrecaoView } from './CorrecaoView'
 import { EsperaView } from './EsperaView'
+import { NaoIdentificadoView } from './NaoIdentificadoView'
 import { ResultadoView } from './ResultadoView'
 
-type Step = 'espera' | 'resultado' | 'correcao' | 'confirmacao'
+type Step = 'espera' | 'resultado' | 'naoid' | 'correcao' | 'confirmacao'
 
 // Fluxo do celular (MVP): espera -> resultado -> (confirmar | corrigir) -> registrado -> espera...
 // Rota pública (/captura): não exige login, para demonstração.
@@ -38,9 +39,14 @@ export function CapturaPage() {
       } catch {
         result = fakeClassify(lastMaterial.current)
       }
-      lastMaterial.current = result.material
-      setDetection(result)
-      setStep('resultado')
+      if (result.detectado === false) {
+        // IA não reconheceu nada: pede para aproximar, sem registrar coleta
+        setStep('naoid')
+      } else {
+        lastMaterial.current = result.material
+        setDetection(result)
+        setStep('resultado')
+      }
     } finally {
       detectando.current = false
     }
@@ -107,6 +113,7 @@ export function CapturaPage() {
       {step === 'resultado' && detection && (
         <ResultadoView detection={detection} onConfirm={confirm} onCorrect={() => setStep('correcao')} />
       )}
+      {step === 'naoid' && <NaoIdentificadoView onRetry={next} />}
       {step === 'correcao' && <CorrecaoView onPick={correct} onBack={() => setStep('resultado')} />}
       {step === 'confirmacao' && registered && (
         <ConfirmacaoView material={registered.material} title={registered.title} onDone={next} />

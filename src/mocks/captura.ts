@@ -9,6 +9,7 @@ export type Detection = {
   title: string // nome do objeto (aparece em "+ 1 ...")
   description: string // legenda da tela de resultado
   confidence: 1 | 2 | 3 | 4 | 5 // bolinhas
+  detectado?: boolean // false quando a IA não reconheceu nada (mostra "aproxime o item")
 }
 
 const SAMPLES: Detection[] = [

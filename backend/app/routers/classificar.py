@@ -24,6 +24,17 @@ async def classificar(
     conteudo = await file.read()
     resultado = await get_inference().classificar(conteudo)
 
+    # O modelo sinaliza "não reconheci nada" com confiança 0.0 (ex.: apontar para a
+    # parede). Nesse caso não registramos coleta e pedimos para o app tentar de novo.
+    if resultado.confidence <= 0.0:
+        return Detection(
+            material="outros",
+            title=resultado.title or "Não identificado",
+            description="Aproxime o item da câmera e tente de novo.",
+            confidence=1,
+            detectado=False,
+        )
+
     bolinhas = confianca_para_bolinhas(resultado.confidence)
     descricao = resultado.description or f"{MATERIAIS.get(resultado.material, 'Item')} identificado"
     foto = salvar_foto(conteudo, file.filename)
@@ -47,4 +58,5 @@ async def classificar(
         title=resultado.title,
         description=descricao,
         confidence=bolinhas,
+        detectado=True,
     )

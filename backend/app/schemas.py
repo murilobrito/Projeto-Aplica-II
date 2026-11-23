@@ -26,6 +26,7 @@ class Detection(BaseModel):
     title: str
     description: str
     confidence: int  # 1–5
+    detectado: bool = True  # False quando a IA não reconheceu nada na imagem
 
 
 class CorrecaoIn(BaseModel):
