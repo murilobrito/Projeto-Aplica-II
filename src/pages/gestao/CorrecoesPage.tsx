@@ -17,10 +17,14 @@ const MAX_DAYS: Record<Period, number> = { hoje: 0, semana: 7, mes: 30 }
 export function CorrecoesPage() {
   const [period, setPeriod] = useState<Period>('hoje')
   const [correcoes, setCorrecoes] = useState<Correction[]>([])
+  const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
     let ativo = true
-    apiCorrecoes().then((c) => { if (ativo) setCorrecoes(c) }).catch(() => {})
+    apiCorrecoes()
+      .then((c) => { if (ativo) setCorrecoes(c) })
+      .catch(() => {})
+      .finally(() => { if (ativo) setCarregando(false) })
     return () => {
       ativo = false
     }
@@ -60,7 +64,9 @@ export function CorrecoesPage() {
             </Card>
           </li>
         ))}
-        {list.length === 0 && <p className="text-sm text-ink-muted">Nenhuma correção neste período.</p>}
+        {!carregando && list.length === 0 && (
+          <p className="text-sm text-ink-muted">Nenhuma correção neste período.</p>
+        )}
       </ul>
     </div>
   )

@@ -2,12 +2,14 @@
 para que login e telas funcionem sem cadastro manual."""
 
 import datetime as dt
+import random
 
 from sqlmodel import Session, select
 
 from app.config import settings
 from app.database import engine
-from app.models import Categoria, Cooperativa, Correcao, Dispositivo, Grupo, Item, Usuario
+from app.materiais import MATERIAIS
+from app.models import Categoria, Coleta, Cooperativa, Correcao, Dispositivo, Grupo, Item, Usuario
 from app.security import hash_senha
 
 # Mesmos usuários de src/mocks/users.ts + src/mocks/gestao.ts
@@ -108,6 +110,35 @@ def _seed_cooperativa(session: Session) -> None:
     ))
 
 
+PESO_MIX = [("plastico", 42), ("papel", 28), ("metal", 15), ("vidro", 10), ("organico", 5)]
+
+
+def _seed_coletas(session: Session) -> None:
+    if session.exec(select(Coleta)).first() is not None:
+        return
+    sorteio = random.Random(42)
+    pool = [material for material, peso in PESO_MIX for _ in range(peso)]
+    catadores = ["RV-1024", "RV-1026", "RV-1027"]
+    agora = dt.datetime.now(dt.timezone.utc)
+    lote = []
+    for _ in range(1850):
+        material = sorteio.choice(pool)
+        lote.append(Coleta(
+            material=material,
+            title=MATERIAIS[material],
+            confidence=sorteio.choice([3, 4, 4, 5, 5]),
+            catador_id=sorteio.choice(catadores),
+            device_id=sorteio.randint(1, 4),
+            created_at=agora - dt.timedelta(days=sorteio.randint(0, 29), minutes=sorteio.randint(0, 1439)),
+        ))
+    session.add_all(lote)
+
+
+PARES_CORRECAO = [
+    ("metal", "plastico"), ("papel", "plastico"), ("vidro", "plastico"), ("plastico", "papel"),
+    ("papel", "metal"), ("plastico", "vidro"), ("organico", "papel"), ("metal", "vidro"),
+]
+
 # Correções de exemplo (device, catador, detectado, corrigido, confiança %, há quanto tempo)
 CORRECOES = [
     (2, "RV-1026", "metal", "plastico", 84, dt.timedelta(minutes=10)),
@@ -135,6 +166,19 @@ def _seed_correcoes(session: Session) -> None:
             confidence=conf,
             created_at=agora - delta,
         ))
+    # mais algumas espalhadas no mês para a taxa de correção ficar realista (~4%)
+    sorteio = random.Random(7)
+    catadores = ["RV-1024", "RV-1026", "RV-1027"]
+    for _ in range(62):
+        detectado, corrigido = sorteio.choice(PARES_CORRECAO)
+        session.add(Correcao(
+            device_id=sorteio.randint(1, 4),
+            catador_id=sorteio.choice(catadores),
+            material_detectado=detectado,
+            material_corrigido=corrigido,
+            confidence=sorteio.randint(78, 98),
+            created_at=agora - dt.timedelta(days=sorteio.randint(0, 29), minutes=sorteio.randint(0, 1439)),
+        ))
 
 
 def seed() -> None:
@@ -142,5 +186,6 @@ def seed() -> None:
         _seed_base(session)
         _seed_categorias(session)
         _seed_cooperativa(session)
+        _seed_coletas(session)
         _seed_correcoes(session)
         session.commit()
