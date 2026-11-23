@@ -28,7 +28,7 @@ export function GestaoDispositivosPage() {
         </Button>
       )}
 
-      <ul className="flex flex-col gap-3">
+      <ul className="grid gap-3 lg:grid-cols-2">
         {devices.map((d) => {
           const operator = users.find((u) => u.id === d.catadorId)
           return (

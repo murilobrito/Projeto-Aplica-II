@@ -4,6 +4,7 @@ import { Award, Bell, Building2, Clock, Cpu, House, LayoutDashboard, Library, Me
 import { AppHeader, type HeaderVariant } from '../components/AppHeader'
 import { BottomNav, type NavItem } from '../components/BottomNav'
 import { GestaoSidebar } from '../components/GestaoSidebar'
+import { GestaoToast } from '../components/GestaoToast'
 
 // Admin (equipe EcoTriall) — ainda no shell mobile
 const plataformaNav: NavItem[] = [
@@ -78,6 +79,8 @@ export function GestaoLayout() {
           </div>
         </main>
       </div>
+
+      <GestaoToast />
     </div>
   )
 }

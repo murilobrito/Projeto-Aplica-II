@@ -33,7 +33,7 @@ export function CorrecoesPage() {
       <h1 className="text-2xl font-extrabold text-ink">Histórico de Correções</h1>
       <FilterChips options={PERIODS} value={period} onChange={setPeriod} />
 
-      <ul className="flex flex-col gap-3">
+      <ul className="grid gap-3 lg:grid-cols-2">
         {list.map((c) => (
           <li key={c.id}>
             <Card>

@@ -38,7 +38,7 @@ export function UsuariosPage() {
         Novo Usuário
       </Link>
 
-      <ul className="flex flex-col gap-3">
+      <ul className="grid gap-3 lg:grid-cols-2">
         {list.map((u) => (
           <li key={u.id}>
             <Card className={u.active ? '' : 'opacity-70'}>

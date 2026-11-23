@@ -37,7 +37,7 @@ export function EquipePage() {
         </div>
       </div>
 
-      <ul className="flex flex-col gap-3">
+      <ul className="grid gap-3 lg:grid-cols-2">
         {catadores.map((c) => {
           const s = CATADOR_STATS[c.id]
           const device = devices.find((d) => d.catadorId === c.id)
