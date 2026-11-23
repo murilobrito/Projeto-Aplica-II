@@ -5,10 +5,13 @@ import { CAPTURE_WAIT_MS } from '../../mocks/captura'
 type Props = {
   stream: MediaStream | null
   cameraFailed: boolean
+  cameras: MediaDeviceInfo[]
+  deviceId?: string
+  onPickCamera: (id: string | undefined) => void
   onDetect: (foto: Blob | null) => void
 }
 
-export function EsperaView({ stream, cameraFailed, onDetect }: Props) {
+export function EsperaView({ stream, cameraFailed, cameras, deviceId, onPickCamera, onDetect }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -55,6 +58,22 @@ export function EsperaView({ stream, cameraFailed, onDetect }: Props) {
           <span className={`size-2 rounded-full ${ready ? 'bg-green-400' : 'bg-offline'}`} />
           {ready ? 'CÂMERA PRONTA' : cameraFailed ? 'MODO DEMONSTRAÇÃO' : 'ABRINDO CÂMERA...'}
         </span>
+
+        {cameras.length > 1 && (
+          <select
+            value={deviceId ?? ''}
+            onChange={(e) => onPickCamera(e.target.value || undefined)}
+            aria-label="Escolher câmera"
+            className="absolute right-3 top-3 max-w-[55%] truncate rounded-full bg-black/60 px-3 py-1.5 text-[11px] font-bold text-white"
+          >
+            <option value="">Câmera automática</option>
+            {cameras.map((c, i) => (
+              <option key={c.deviceId} value={c.deviceId}>
+                {c.label || `Câmera ${i + 1}`}
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="absolute inset-x-0 top-1/2 flex -translate-y-[58%] flex-col items-center gap-5">
           {/* Tocar na moldura reconhece o objeto na hora */}

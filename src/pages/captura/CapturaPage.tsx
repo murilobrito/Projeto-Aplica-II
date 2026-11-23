@@ -21,7 +21,7 @@ type Step = 'espera' | 'resultado' | 'naoid' | 'correcao' | 'confirmacao'
 // Estação de triagem (rota pública /captura): captura à esquerda, turno à direita no
 // desktop; no celular vira a tela de captura sozinha.
 export function CapturaPage() {
-  const { stream, failed } = useCamera()
+  const { stream, failed, cameras, deviceId, setDeviceId } = useCamera()
   const [step, setStep] = useState<Step>('espera')
   const [detection, setDetection] = useState<Detection | null>(null)
   const [registered, setRegistered] = useState<{ material: MaterialId; title: string } | null>(null)
@@ -112,7 +112,16 @@ export function CapturaPage() {
           </header>
         )}
 
-        {step === 'espera' && <EsperaView stream={stream} cameraFailed={failed} onDetect={detect} />}
+        {step === 'espera' && (
+          <EsperaView
+            stream={stream}
+            cameraFailed={failed}
+            cameras={cameras}
+            deviceId={deviceId}
+            onPickCamera={setDeviceId}
+            onDetect={detect}
+          />
+        )}
         {step === 'resultado' && detection && (
           <ResultadoView detection={detection} onConfirm={confirm} onCorrect={() => setStep('correcao')} />
         )}

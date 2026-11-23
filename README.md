@@ -1,32 +1,72 @@
-# React + TypeScript + Vite
+# EcoTriagem
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Lixeira inteligente de triagem de recicláveis para cooperativas de catadores. Um dispositivo
+com câmera identifica o tipo do material descartado (e, no segundo semestre, estima a
+qualidade/contaminação), enquanto uma plataforma web acompanha o volume, a composição e o
+valor estimado do material coletado.
 
-Currently, two official plugins are available:
+O diferencial frente às soluções comerciais, voltadas a grandes usinas, é cruzar **tipo** e
+**qualidade** — o fator que define o preço de venda e, portanto, a renda da cooperativa.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Projeto das disciplinas de Projeto Aplicado I e II (PUC-Campinas).
 
-## React Compiler
+## Como funciona
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Estação de triagem** (`/captura`): roda no computador acoplado à câmera. O catador vê a
+  classificação na hora, confirma ou corrige, e acompanha o turno — itens, mix e valor.
+- **Painel do coordenador** (`/gestao`): dashboard, composição, relatórios, dispositivos,
+  equipe, usuários e configuração de categorias e preços.
+- O modelo de visão computacional roda como um serviço separado, consultado pelo back-end por
+  HTTP. Enquanto ele não está no ar, o back-end usa um mock e nada fica parado.
 
-## Expanding the Oxlint configuration
+## Tecnologias
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+- **Front-end:** React, TypeScript, Vite e Tailwind CSS.
+- **Back-end:** FastAPI (Python), SQLModel e autenticação por JWT. Banco SQLite por padrão.
+- **Modelo:** YOLO (Ultralytics) / PyTorch, mantido no repositório `ecotriall-api`.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Rodando o projeto
+
+São duas partes — back-end e front-end. Deixe as duas rodando ao mesmo tempo.
+
+Pré-requisitos: Python 3.11+ e Node.js 18+.
+
+### Back-end (porta 8000)
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --port 8000
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+No primeiro boot o banco é criado e populado com dados de demonstração. A documentação da
+API fica em <http://localhost:8000/docs>.
+
+### Front-end (porta 5173)
+
+Em outro terminal, na raiz do repositório:
+
+```powershell
+npm install
+npm run dev
+```
+
+Depois abra <http://localhost:5173>.
+
+## Acessando o site
+
+- **Painel do coordenador:** entre em <http://localhost:5173> com uma conta de teste (senha `123456`):
+  - `gerente@ecotriall.com` — acesso total
+  - `coordenador@ecotriall.com` — operação do dia a dia
+- **Estação de triagem:** <http://localhost:5173/captura> (não exige login).
+
+> A câmera só abre em `https://` ou em `localhost`. Para usar o celular como câmera, deixe-o
+> como webcam do computador (apps como Iriun ou DroidCam, ou o recurso nativo do Windows) e
+> escolha a câmera no seletor da própria tela de captura.
+
+## Estrutura
+
+- `src/` — front-end (React).
+- `backend/` — API (FastAPI) e o contrato de integração com o modelo em `backend/integracao-modelo/`.
