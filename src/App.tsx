@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
 import { RequireArea } from './auth/RequireArea'
-import { CatadorLayout, GestaoLayout, PlataformaLayout } from './layouts/AppLayouts'
+import { GestaoLayout, PlataformaLayout } from './layouts/AppLayouts'
+import { CatadorLayout } from './layouts/CatadorLayout'
 import { LoginPage } from './pages/LoginPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { GestaoProvider } from './gestao/GestaoContext'
@@ -22,7 +23,6 @@ import { MaisPage } from './pages/gestao/MaisPage'
 import { DesempenhoPage } from './pages/catador/DesempenhoPage'
 import { DispositivosPage } from './pages/catador/DispositivosPage'
 import { HistoricoPage } from './pages/catador/HistoricoPage'
-import { HomePage } from './pages/catador/HomePage'
 import { PerfilPage } from './pages/catador/PerfilPage'
 import { CapturaPage } from './pages/captura/CapturaPage'
 
@@ -78,7 +78,7 @@ function App() {
           {/* Catador */}
           <Route element={<RequireArea area="catador" />}>
             <Route path="/catador" element={<CatadorLayout />}>
-              <Route index element={<HomePage />} />
+              <Route index element={<CapturaPage embedded />} />
               <Route path="historico" element={<HistoricoPage />} />
               <Route path="desempenho" element={<DesempenhoPage />} />
               <Route path="dispositivos" element={<DispositivosPage />} />

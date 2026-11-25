@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { MATERIALS, type MaterialId } from '../../lib/materials'
+import { apiCategorias } from '../../lib/api'
 import { brl } from '../../lib/format'
 
 export type ItemTurno = { material: MaterialId; title: string; at: number }
@@ -22,8 +24,22 @@ const PRECO_BASE: Record<MaterialId, number> = {
 }
 
 export function TurnoPanel({ turno, className = '' }: { turno: ItemTurno[]; className?: string }) {
+  // Preço base de cada material: usa o que o gerente configurou (quando logado); senão, o padrão acima
+  const [precos, setPrecos] = useState<Record<MaterialId, number>>(PRECO_BASE)
+  useEffect(() => {
+    apiCategorias()
+      .then((cats) =>
+        setPrecos((atual) => {
+          const novo = { ...atual }
+          for (const c of cats) novo[c.id] = c.basePrice
+          return novo
+        }),
+      )
+      .catch(() => {})
+  }, [])
+
   const total = turno.length
-  const valor = turno.reduce((soma, i) => soma + PESO_MEDIO[i.material] * PRECO_BASE[i.material], 0)
+  const valor = turno.reduce((soma, i) => soma + PESO_MEDIO[i.material] * precos[i.material], 0)
 
   const contagem = new Map<MaterialId, number>()
   for (const i of turno) contagem.set(i.material, (contagem.get(i.material) ?? 0) + 1)

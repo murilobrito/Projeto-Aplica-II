@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { Check, Leaf, LogOut } from 'lucide-react'
+import { useAuth } from '../../auth/AuthContext'
 import { COOP_NAME } from '../../lib/config'
 import { MATERIALS, type MaterialId } from '../../lib/materials'
 import { useCamera } from '../../lib/useCamera'
@@ -11,14 +12,19 @@ import { TurnoPanel, type ItemTurno } from './TurnoPanel'
 const FOTO_VAZIA = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' })
 const ORDEM: MaterialId[] = ['plastico', 'papel', 'metal', 'vidro', 'organico', 'outros']
 
+// Guarda o turno ao trocar de tela (Histórico, Perfil...) sem perder a contagem
+const turnoGuardado: { dono: string; itens: ItemTurno[] } = { dono: '', itens: [] }
+
 type Step = 'espera' | 'resultado' | 'naoid' | 'correcao' | 'confirmacao'
 
-export function CapturaPage() {
+export function CapturaPage({ embedded = false }: { embedded?: boolean }) {
+  const { user } = useAuth()
   const { stream, failed, cameras, deviceId, setDeviceId } = useCamera()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [step, setStep] = useState<Step>('espera')
   const [detection, setDetection] = useState<Detection | null>(null)
-  const [turno, setTurno] = useState<ItemTurno[]>([])
+  const donoTurno = user?.loginId ?? 'demo'
+  const [turno, setTurno] = useState<ItemTurno[]>(() => (turnoGuardado.dono === donoTurno ? turnoGuardado.itens : []))
   const lastMaterial = useRef<MaterialId | undefined>(undefined)
   const detectando = useRef(false)
 
@@ -72,7 +78,12 @@ export function CapturaPage() {
   }, [step])
 
   function registrar(material: MaterialId, title: string) {
-    setTurno((prev) => [{ material, title, at: Date.now() }, ...prev])
+      setTurno((prev) => {
+      const novo = [{ material, title, at: Date.now() }, ...prev]
+      turnoGuardado.dono = donoTurno
+      turnoGuardado.itens = novo
+      return novo
+    })
     setStep('confirmacao')
   }
 
@@ -95,9 +106,21 @@ export function CapturaPage() {
   const status = stream ? 'CÂMERA PRONTA' : failed ? 'MODO DEMONSTRAÇÃO' : 'ABRINDO CÂMERA...'
 
   return (
-    <div className="bg-surface lg:flex lg:min-h-dvh lg:gap-6 lg:p-6">
-      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 p-4 lg:mx-0 lg:min-h-0 lg:max-w-none lg:flex-1 lg:p-0">
-        <header className="flex items-center justify-between">
+        <div
+      className={
+        embedded
+          ? 'flex flex-col gap-4 lg:h-[calc(100dvh-3rem)] lg:flex-row lg:gap-6'
+          : 'bg-surface lg:flex lg:min-h-dvh lg:gap-6 lg:p-6'
+      }
+    >
+      <div
+        className={
+          embedded
+            ? 'flex min-h-[28rem] flex-1 flex-col gap-4'
+            : 'mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 p-4 lg:mx-0 lg:min-h-0 lg:max-w-none lg:flex-1 lg:p-0'
+        }
+      >
+        <header className={`flex items-center justify-between ${embedded ? 'hidden' : ''}`}>
           <div className="flex items-center gap-2">
             <span className="flex size-9 items-center justify-center rounded-full bg-brand text-white">
               <Leaf size={18} />
@@ -179,7 +202,7 @@ export function CapturaPage() {
         </div>
       </div>
 
-      <TurnoPanel turno={turno} className="hidden lg:flex lg:w-96 lg:shrink-0" />
+            <TurnoPanel turno={turno} className={embedded ? 'flex lg:w-96 lg:shrink-0' : 'hidden lg:flex lg:w-96 lg:shrink-0'} />
     </div>
   )
 }

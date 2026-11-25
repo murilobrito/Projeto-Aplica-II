@@ -1,4 +1,4 @@
-# EcoTriagem
+# EcoTriall
 
 Lixeira inteligente de triagem de recicláveis para cooperativas de catadores. Um dispositivo
 com câmera identifica o tipo do material descartado (e, no segundo semestre, estima a
