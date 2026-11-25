@@ -81,6 +81,8 @@ def _seed_base(session: Session) -> None:
     for login_id, name, email, phone, role, active in USUARIOS:
         session.add(Usuario(login_id=login_id, name=name, email=email, phone=phone, role=role, active=active, senha_hash=senha))
 
+    session.flush()  # grava os usuários antes: o dispositivo referencia o catador e o Postgres valida a FK na hora
+
     for id_, name, location, active, catador_id, battery, signal, last in DISPOSITIVOS:
         session.add(Dispositivo(id=id_, name=name, location=location, active=active, catador_id=catador_id, battery=battery, signal=signal, last_activity=last))
 
