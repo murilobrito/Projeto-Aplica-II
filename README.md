@@ -22,7 +22,7 @@ Projeto das disciplinas de Projeto Aplicado I e II (PUC-Campinas).
 ## Tecnologias
 
 - **Front-end:** React, TypeScript, Vite e Tailwind CSS.
-- **Back-end:** FastAPI (Python), SQLModel e autenticação por JWT. Banco SQLite por padrão.
+- **Back-end:** FastAPI (Python), SQLModel e autenticação por JWT. Banco PostgreSQL (hospedado no Supabase), com SQLite como alternativa para rodar local.
 - **Modelo:** YOLO (Ultralytics) / PyTorch, mantido no repositório `ecotriall-api`.
 
 ## Rodando o projeto
@@ -41,8 +41,10 @@ pip install -r requirements.txt
 uvicorn app.main:app --port 8000
 ```
 
-No primeiro boot o banco é criado e populado com dados de demonstração. A documentação da
-API fica em <http://localhost:8000/docs>.
+Antes de rodar, copie o `.env.example` para `.env`. O banco é definido pela variável
+`DATABASE_URL`: sem mexer, ele usa um SQLite local; para o PostgreSQL, cole ali a string de
+conexão do Supabase. No primeiro boot o banco é criado e populado com dados de demonstração.
+A documentação da API fica em <http://localhost:8000/docs>.
 
 ### Front-end (porta 5173)
 

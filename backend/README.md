@@ -4,7 +4,7 @@ API do EcoTriagem: autenticação, registro de coletas/correções e as telas de
 A classificação de materiais vem de um **serviço de inferência separado** (o modelo do
 `ecotriall-api`); por padrão o backend usa um **mock**, então roda sem depender do modelo.
 
-- **Stack:** FastAPI + SQLModel + JWT. Banco SQLite por padrão (troque para Postgres numa variável).
+- **Stack:** FastAPI + SQLModel + JWT. Banco PostgreSQL no Supabase (ou SQLite local), definido na variável `DATABASE_URL`.
 - **Contrato com a IA:** ver [`integracao-modelo/CONTRATO_INFERENCIA.md`](integracao-modelo/CONTRATO_INFERENCIA.md).
 
 ## Rodar (Windows / PowerShell)
@@ -48,12 +48,12 @@ INFERENCE_URL=http://localhost:8001
 
 Nada mais muda — o `/classificar` passa a usar o modelo de verdade.
 
-## Ligar o frontend neste backend
+## Frontend
 
-No `Projeto-Aplica-II`, troque a função `login` de `src/auth/AuthContext.tsx` (hoje em mock)
-por um `fetch('http://localhost:8000/auth/login', ...)` e guarde o `token` para enviar no
-header `Authorization: Bearer <token>` das demais chamadas. O `fakeClassify()` de
-`src/mocks/captura.ts` vira um `POST /classificar` com a foto.
+O frontend já consome esta API — as chamadas ficam em `src/lib/api.ts`, com login por JWT e o
+token no header `Authorization`. A URL do backend vem de `VITE_API_URL` (padrão
+`http://localhost:8000`); defina essa variável no `.env` do front se o backend rodar em outro
+endereço.
 
 ## Observações
 
