@@ -65,9 +65,15 @@ def vincular_catador(session: Session, device_id: int, catador_id: str | None) -
 @router.get("/usuarios")
 def listar_usuarios(
     session: Session = Depends(get_session),
-    _: Usuario = Depends(exige_papel("admin", "gerente", "coordenador")),
+    atual: Usuario = Depends(exige_papel("admin", "gerente", "coordenador")),
 ):
     usuarios = session.exec(select(Usuario)).all()
+    # Quem pode ver quem (a regra mora aqui no back; o front só esconde botões):
+    # admin vê todos; gerente não vê o admin; coordenador só vê catadores.
+    if atual.role == "gerente":
+        usuarios = [u for u in usuarios if u.role != "admin"]
+    elif atual.role == "coordenador":
+        usuarios = [u for u in usuarios if u.role == "catador"]
     return [para_front(u) for u in usuarios]
 
 
@@ -107,10 +113,11 @@ def atualizar_usuario(
     login_id: str,
     dados: UsuarioPatch,
     session: Session = Depends(get_session),
-    _: Usuario = Depends(exige_papel("admin", "gerente")),
+        atual: Usuario = Depends(exige_papel("admin", "gerente")),
 ):
     usuario = session.get(Usuario, login_id)
-    if usuario is None:
+    # Para quem não é admin, o admin simplesmente não existe
+    if usuario is None or (usuario.role == "admin" and atual.role != "admin"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado")
 
     if dados.active is not None:

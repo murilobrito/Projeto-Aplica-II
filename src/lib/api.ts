@@ -28,6 +28,20 @@ export function setToken(token: string | null): void {
   }
 }
 
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
+// O AuthProvider registra aqui o que fazer quando o back diz que a sessão não vale mais (401)
+let aoExpirarSessao: (() => void) | null = null
+export function setAoExpirarSessao(fn: (() => void) | null): void {
+  aoExpirarSessao = fn
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   const token = getToken()
@@ -43,7 +57,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     } catch {
       // resposta sem JSON: mantém a mensagem padrão
     }
-    throw new Error(mensagem)
+    // 401 fora do login = token expirado/inválido ou usuário desativado: derruba a sessão
+    if (res.status === 401 && token && path !== '/auth/login') aoExpirarSessao?.()
+    throw new ApiError(mensagem, res.status)
   }
 
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
@@ -55,6 +71,10 @@ export function apiLogin(identifier: string, password: string): Promise<{ user: 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identifier, password }),
   })
+}
+
+export function apiMe(): Promise<User> {
+  return request('/auth/me')
 }
 
 export function apiClassificar(foto: Blob): Promise<Detection> {

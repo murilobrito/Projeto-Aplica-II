@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
-import { apiLogin, setToken } from '../lib/api'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { ApiError, apiLogin, apiMe, getToken, setAoExpirarSessao, setToken } from '../lib/api'
 import { type User } from '../mocks/users'
 
 const STORAGE_KEY = 'ecotriall:user:v2'
@@ -47,6 +47,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveUser(null)
     setUser(null)
   }
+
+  // Não basta confiar no que ficou salvo no navegador: ao abrir o app, pergunta ao back
+  // se a sessão ainda vale. Se não valer (token vencido, usuário inativado), desloga.
+  useEffect(() => {
+    setAoExpirarSessao(logout)
+    if (loadUser()) {
+      if (!getToken()) {
+        logout()
+      } else {
+        apiMe()
+          .then((atual) => {
+            saveUser(atual)
+            setUser(atual)
+          })
+          .catch((e) => {
+            // back fora do ar não derruba a sessão; só 401 (já tratado em api.ts)
+            if (e instanceof ApiError && e.status === 401) logout()
+          })
+      }
+    }
+    return () => setAoExpirarSessao(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>
 }
