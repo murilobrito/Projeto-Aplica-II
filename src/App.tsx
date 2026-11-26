@@ -1,10 +1,17 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
 import { RequireArea } from './auth/RequireArea'
-import { GestaoLayout, PlataformaLayout } from './layouts/AppLayouts'
+import { GestaoLayout } from './layouts/AppLayouts'
 import { CatadorLayout } from './layouts/CatadorLayout'
+import { PlataformaLayout } from './layouts/PlataformaLayout'
 import { LoginPage } from './pages/LoginPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
+import { CatalogoPage } from './pages/plataforma/CatalogoPage'
+import { CooperativaDetalhePage } from './pages/plataforma/CooperativaDetalhePage'
+import { CooperativasPage } from './pages/plataforma/CooperativasPage'
+import { PlataformaDispositivosPage } from './pages/plataforma/DispositivosPage'
+import { NovaCooperativaPage } from './pages/plataforma/NovaCooperativaPage'
+import { PlataformaPainelPage } from './pages/plataforma/PainelPage'
+import { PlataformaPerfilPage } from './pages/plataforma/PerfilPage'
 import { GestaoProvider } from './gestao/GestaoContext'
 import { GestaoDashboardPage } from './pages/gestao/DashboardPage'
 import { GestaoDispositivosPage } from './pages/gestao/DispositivosPage'
@@ -38,13 +45,13 @@ function App() {
           {/* Admin: equipe EcoTriall */}
           <Route element={<RequireArea area="plataforma" />}>
             <Route path="/plataforma" element={<PlataformaLayout />}>
-              <Route index element={<PlaceholderPage title="Painel da plataforma" />} />
-              <Route path="cooperativas" element={<PlaceholderPage title="Cooperativas" />} />
-              <Route path="cooperativas/nova" element={<PlaceholderPage title="Nova cooperativa" />} />
-              <Route path="cooperativas/:id" element={<PlaceholderPage title="Detalhe da cooperativa" />} />
-              <Route path="dispositivos" element={<PlaceholderPage title="Dispositivos da plataforma" />} />
-              <Route path="catalogo" element={<PlaceholderPage title="Catálogo de materiais" />} />
-              <Route path="perfil" element={<PlaceholderPage title="Perfil" />} />
+              <Route index element={<PlataformaPainelPage />} />
+              <Route path="cooperativas" element={<CooperativasPage />} />
+              <Route path="cooperativas/nova" element={<NovaCooperativaPage />} />
+              <Route path="cooperativas/:id" element={<CooperativaDetalhePage />} />
+              <Route path="dispositivos" element={<PlataformaDispositivosPage />} />
+              <Route path="catalogo" element={<CatalogoPage />} />
+              <Route path="perfil" element={<PlataformaPerfilPage />} />
             </Route>
           </Route>
 

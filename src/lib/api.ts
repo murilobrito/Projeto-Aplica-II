@@ -198,3 +198,85 @@ export function apiAtualizarCooperativa(patch: Partial<Coop>): Promise<Coop> {
 export function apiCorrecoes(): Promise<Correction[]> {
   return request('/correcoes')
 }
+
+
+// ---------- Plataforma (admin = equipe EcoTriall) ----------
+export type CoopResumo = {
+  id: number
+  razao: string
+  cnpj: string
+  endereco: string
+  ativa: boolean
+  usuarios: number
+  catadores: number
+  dispositivos: number
+  dispositivosAtivos: number
+  itensHoje: number
+  itens30d: number
+  correcoes30d: number
+}
+
+export type CoopDetalhe = CoopResumo & { gerentes: CoopUser[] }
+
+export type ResumoPlataforma = {
+  cooperativas: number
+  cooperativasAtivas: number
+  usuarios: number
+  dispositivos: number
+  dispositivosAtivos: number
+  itensHoje: number
+  itens30d: number
+  correcoes30d: number
+  porCooperativa: CoopResumo[]
+}
+
+export type DeviceAdmin = Device & { cooperativaId: number | null; cooperativa: string | null }
+
+export type NovaCoopPayload = {
+  razao: string
+  cnpj: string
+  endereco: string
+  gerente: { name: string; email?: string; phone: string }
+}
+
+export type NovaCoopResposta = {
+  id: number
+  razao: string
+  gerente: CoopUser
+  senhaInicial: string
+}
+
+export function apiResumoPlataforma(): Promise<ResumoPlataforma> {
+  return request('/plataforma/resumo')
+}
+
+export function apiCooperativas(): Promise<CoopResumo[]> {
+  return request('/cooperativas')
+}
+
+export function apiCooperativaDetalhe(id: number): Promise<CoopDetalhe> {
+  return request(`/cooperativas/${id}`)
+}
+
+export function apiCriarCooperativa(payload: NovaCoopPayload): Promise<NovaCoopResposta> {
+  return request('/cooperativas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export function apiAtualizarCooperativaPlataforma(
+  id: number,
+  patch: { razao?: string; cnpj?: string; endereco?: string; ativa?: boolean },
+): Promise<unknown> {
+  return request(`/cooperativas/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+}
+
+export function apiDispositivosPlataforma(): Promise<DeviceAdmin[]> {
+  return request('/dispositivos')
+}

@@ -5,6 +5,8 @@ export type User = {
   loginId: string // ID de usuário (todo usuário tem)
   email?: string // opcional: depende da configuração da cooperativa
   role: Role
+  cooperativaId?: number | null // nulo para o admin (equipe EcoTriall)
+  cooperativa?: string | null // nome da cooperativa, para exibir
 }
 
 // MOCK: quando o back existir, isto vira POST /auth/login e a resposta traz o usuário (e o JWT).

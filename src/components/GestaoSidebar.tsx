@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { ROLE_LABEL } from '../auth/roles'
-import { APP_NAME, COOP_NAME } from '../lib/config'
+import { APP_NAME, nomeCoop } from '../lib/config'
 import { Avatar } from './Avatar'
 
 type Item = { to: string; label: string; icon: LucideIcon; end?: boolean }
@@ -45,9 +45,9 @@ export function GestaoSidebar({ className = '', onNavigate }: Props) {
         <span className="flex size-10 items-center justify-center rounded-xl bg-brand text-white">
           <Leaf size={20} />
         </span>
-        <div className="leading-tight">
+        <div className="min-w-0 leading-tight">
           <p className="font-extrabold text-ink">{APP_NAME}</p>
-          <p className="text-xs text-ink-muted">{COOP_NAME}</p>
+          <p className="truncate text-xs text-ink-muted">{nomeCoop(user)}</p>
         </div>
       </div>
 

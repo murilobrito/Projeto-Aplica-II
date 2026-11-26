@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Award, Camera, Clock, Cpu, Leaf, Menu, User } from 'lucide-react'
 import { AppSidebar, type SidebarItem } from '../components/AppSidebar'
-import { COOP_NAME } from '../lib/config'
+import { useAuth } from '../auth/AuthContext'
+import { nomeCoop } from '../lib/config'
 
 const NAV: SidebarItem[] = [
   { to: '/catador', label: 'Estação', icon: Camera, end: true },
@@ -16,6 +17,7 @@ const NAV: SidebarItem[] = [
 // A tela "Estação" ocupa a área toda; as demais ficam centralizadas numa coluna.
 export function CatadorLayout() {
   const [drawerAberto, setDrawerAberto] = useState(false)
+  const { user } = useAuth()
   const { pathname } = useLocation()
   const naEstacao = pathname === '/catador'
 
@@ -42,7 +44,7 @@ export function CatadorLayout() {
           <span className="flex size-9 items-center justify-center rounded-full bg-brand text-white">
             <Leaf size={18} />
           </span>
-          <p className="text-sm font-extrabold text-ink">{COOP_NAME}</p>
+          <p className="truncate text-sm font-extrabold text-ink">{nomeCoop(user)}</p>
         </header>
 
         <main className={`flex-1 p-4 lg:p-6 ${naEstacao ? '' : 'sm:p-6 lg:p-8'}`}>
