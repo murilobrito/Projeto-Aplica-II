@@ -15,6 +15,8 @@ class Usuario(SQLModel, table=True):
     role: str  # admin | gerente | coordenador | catador
     active: bool = True
     senha_hash: str
+    # Cooperativa a que pertence. Nulo só para o admin da plataforma (equipe EcoTriall).
+    cooperativa_id: int | None = Field(default=None, foreign_key="cooperativa.id", index=True)
 
 
 class Dispositivo(SQLModel, table=True):
@@ -26,6 +28,7 @@ class Dispositivo(SQLModel, table=True):
     battery: int = 100
     signal: str = "Boa"
     last_activity: str | None = None
+    cooperativa_id: int | None = Field(default=None, foreign_key="cooperativa.id", index=True)
 
 
 class Coleta(SQLModel, table=True):
@@ -41,7 +44,8 @@ class Coleta(SQLModel, table=True):
     catador_id: str | None = Field(default=None, foreign_key="usuario.login_id")
     device_id: int | None = Field(default=None, foreign_key="dispositivo.id")
     created_at: dt.datetime = Field(default_factory=agora)
-
+    # Nulo na captura de demonstração (sem login): não entra nos números de nenhuma cooperativa.
+    cooperativa_id: int | None = Field(default=None, foreign_key="cooperativa.id", index=True)
 
 class Categoria(SQLModel, table=True):
     id: str = Field(primary_key=True)  # material: plastico | papel | metal | vidro | organico
@@ -74,6 +78,7 @@ class Cooperativa(SQLModel, table=True):
     razao: str
     cnpj: str
     endereco: str
+    ativa: bool = True
 
 
 class Correcao(SQLModel, table=True):
@@ -90,3 +95,20 @@ class Correcao(SQLModel, table=True):
     catador_id: str | None = Field(default=None, foreign_key="usuario.login_id")
     device_id: int | None = Field(default=None, foreign_key="dispositivo.id")
     created_at: dt.datetime = Field(default_factory=agora)
+    # Nulo na captura de demonstração (sem login): não entra nos números de nenhuma cooperativa.
+    cooperativa_id: int | None = Field(default=None, foreign_key="cooperativa.id", index=True)
+
+# O catálogo (Categoria/Grupo/Item) é um só, da plataforma. Cada cooperativa define os
+# SEUS preços por cima dele, nas duas tabelas abaixo. Sem ajuste, vale o preço padrão.
+class PrecoBase(SQLModel, table=True):
+    cooperativa_id: int = Field(foreign_key="cooperativa.id", primary_key=True)
+    categoria_id: str = Field(foreign_key="categoria.id", primary_key=True)
+    base_price: float
+
+
+class AjusteItem(SQLModel, table=True):
+    cooperativa_id: int = Field(foreign_key="cooperativa.id", primary_key=True)
+    item_id: str = Field(foreign_key="item.id", primary_key=True)
+    price: float | None = None
+    min_confidence: int | None = None
+    active: bool | None = None

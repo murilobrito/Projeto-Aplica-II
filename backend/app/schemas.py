@@ -12,6 +12,8 @@ class UserOut(BaseModel):
     loginId: str
     email: str | None = None
     role: str
+    cooperativaId: int | None = None  # nulo para o admin da plataforma
+    cooperativa: str | None = None  # nome (razão social) para exibir
 
 
 class LoginOut(BaseModel):
@@ -45,7 +47,7 @@ class NovoUsuarioIn(BaseModel):
     email: str | None = None
     phone: str
     device_id: int | None = None  # vincular a este dispositivo (só catador)
-
+    cooperativa_id: int | None = None  # só o admin informa; os demais herdam a própria
 
 class UsuarioPatch(BaseModel):
     active: bool | None = None
@@ -72,3 +74,17 @@ class CoopPatch(BaseModel):
     razao: str | None = None
     cnpj: str | None = None
     endereco: str | None = None
+    ativa: bool | None = None  # só o admin pode mudar
+
+
+class GerenteIn(BaseModel):
+    name: str
+    email: str | None = None
+    phone: str
+
+
+class NovaCoopIn(BaseModel):
+    razao: str
+    cnpj: str
+    endereco: str
+    gerente: GerenteIn  # toda cooperativa nasce com o seu primeiro gerente

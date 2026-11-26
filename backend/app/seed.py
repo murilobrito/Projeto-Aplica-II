@@ -77,14 +77,17 @@ def _seed_base(session: Session) -> None:
     if session.exec(select(Usuario)).first() is not None:
         return
 
+    coop = session.exec(select(Cooperativa).order_by(Cooperativa.id)).first()
     senha = hash_senha(settings.seed_password)
     for login_id, name, email, phone, role, active in USUARIOS:
-        session.add(Usuario(login_id=login_id, name=name, email=email, phone=phone, role=role, active=active, senha_hash=senha))
+        # o admin é da plataforma (EcoTriall), não de uma cooperativa
+        coop_id = None if role == "admin" else coop.id
+        session.add(Usuario(login_id=login_id, name=name, email=email, phone=phone, role=role, active=active, senha_hash=senha, cooperativa_id=coop_id))
 
     session.flush()  # grava os usuários antes: o dispositivo referencia o catador e o Postgres valida a FK na hora
 
     for id_, name, location, active, catador_id, battery, signal, last in DISPOSITIVOS:
-        session.add(Dispositivo(id=id_, name=name, location=location, active=active, catador_id=catador_id, battery=battery, signal=signal, last_activity=last))
+        session.add(Dispositivo(id=id_, name=name, location=location, active=active, catador_id=catador_id, battery=battery, signal=signal, last_activity=last, cooperativa_id=coop.id))
 
 
 def _seed_categorias(session: Session) -> None:
@@ -110,6 +113,42 @@ def _seed_cooperativa(session: Session) -> None:
         cnpj="12.345.678/0001-90",
         endereco="Rua das Flores, 120 - Campinas/SP",
     ))
+    session.flush()  # precisa do id antes de criar usuários e lixeiras
+
+
+# Segunda cooperativa de demonstração: serve para provar que os dados de uma não vazam para a outra.
+CNPJ_COOP2 = "98.765.432/0001-10"
+
+
+def _seed_cooperativa2(session: Session) -> None:
+    if any(c.cnpj == CNPJ_COOP2 for c in session.exec(select(Cooperativa)).all()):
+        return
+    coop = Cooperativa(razao="Cooperativa Verde Esperança Ltda", cnpj=CNPJ_COOP2, endereco="Av. das Palmeiras, 450 - Sumaré/SP")
+    session.add(coop)
+    session.flush()
+    senha = hash_senha(settings.seed_password)
+    session.add(Usuario(login_id="RV-0003", name="Beatriz Nunes", email="gerente2@ecotriall.com", phone="(19) 98888-1111", role="gerente", active=True, senha_hash=senha, cooperativa_id=coop.id))
+    session.add(Usuario(login_id="RV-1030", name="Paulo Souza", email=None, phone="(19) 97777-2222", role="catador", active=True, senha_hash=senha, cooperativa_id=coop.id))
+    session.flush()
+    session.add(Dispositivo(id=5, name="Lixeira Inteligente #01", location="Galpão Central", active=True, catador_id="RV-1030", battery=88, signal="Excelente", last_activity="Há 6 min", cooperativa_id=coop.id))
+    session.flush()
+    sorteio = random.Random(99)
+    pool = [m for m, peso in PESO_MIX for _ in range(peso)]
+    agora = dt.datetime.now(dt.timezone.utc)
+    for _ in range(260):
+        material = sorteio.choice(pool)
+        session.add(Coleta(
+            material=material, title=MATERIAIS[material], confidence=sorteio.choice([3, 4, 4, 5, 5]),
+            catador_id="RV-1030", device_id=5, cooperativa_id=coop.id,
+            created_at=agora - dt.timedelta(days=sorteio.randint(0, 29), minutes=sorteio.randint(0, 1439)),
+        ))
+    for _ in range(9):
+        detectado, corrigido = sorteio.choice(PARES_CORRECAO)
+        session.add(Correcao(
+            device_id=5, catador_id="RV-1030", material_detectado=detectado, material_corrigido=corrigido,
+            confidence=sorteio.randint(78, 98), cooperativa_id=coop.id,
+            created_at=agora - dt.timedelta(days=sorteio.randint(0, 29), minutes=sorteio.randint(0, 1439)),
+        ))
 
 
 PESO_MIX = [("plastico", 42), ("papel", 28), ("metal", 15), ("vidro", 10), ("organico", 5)]
@@ -118,6 +157,7 @@ PESO_MIX = [("plastico", 42), ("papel", 28), ("metal", 15), ("vidro", 10), ("org
 def _seed_coletas(session: Session) -> None:
     if session.exec(select(Coleta)).first() is not None:
         return
+    coop_id = session.exec(select(Cooperativa.id).order_by(Cooperativa.id)).first()
     sorteio = random.Random(42)
     pool = [material for material, peso in PESO_MIX for _ in range(peso)]
     catadores = ["RV-1024", "RV-1026", "RV-1027"]
@@ -131,6 +171,7 @@ def _seed_coletas(session: Session) -> None:
             confidence=sorteio.choice([3, 4, 4, 5, 5]),
             catador_id=sorteio.choice(catadores),
             device_id=sorteio.randint(1, 4),
+            cooperativa_id=coop_id,
             created_at=agora - dt.timedelta(days=sorteio.randint(0, 29), minutes=sorteio.randint(0, 1439)),
         ))
     session.add_all(lote)
@@ -159,8 +200,10 @@ def _seed_correcoes(session: Session) -> None:
     if any(c.device_id is not None for c in session.exec(select(Correcao)).all()):
         return
     agora = dt.datetime.now(dt.timezone.utc)
+    coop_id = session.exec(select(Cooperativa.id).order_by(Cooperativa.id)).first()
     for dev, cat, det, cor, conf, delta in CORRECOES:
         session.add(Correcao(
+            cooperativa_id=coop_id,
             device_id=dev,
             catador_id=cat,
             material_detectado=det,
@@ -174,6 +217,7 @@ def _seed_correcoes(session: Session) -> None:
     for _ in range(62):
         detectado, corrigido = sorteio.choice(PARES_CORRECAO)
         session.add(Correcao(
+            cooperativa_id=coop_id,
             device_id=sorteio.randint(1, 4),
             catador_id=sorteio.choice(catadores),
             material_detectado=detectado,
@@ -185,9 +229,12 @@ def _seed_correcoes(session: Session) -> None:
 
 def seed() -> None:
     with Session(engine) as session:
+        # a cooperativa vem primeiro: usuários, lixeiras e coletas pertencem a ela
+        _seed_cooperativa(session)
         _seed_base(session)
         _seed_categorias(session)
-        _seed_cooperativa(session)
         _seed_coletas(session)
         _seed_correcoes(session)
+        session.commit()
+        _seed_cooperativa2(session)
         session.commit()

@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.deps import usuario_atual
-from app.models import Categoria, Coleta, Correcao, Usuario
+from app.deps import coop_do_escopo, usuario_atual
+from app.models import Categoria, Coleta, Correcao, PrecoBase, Usuario
 
 router = APIRouter(tags=["dashboard"])
 
@@ -44,12 +44,22 @@ def _hoje(coletas: list[Coleta]) -> int:
 
 @router.get("/dashboard")
 def dashboard(
+    cooperativa_id: int | None = None,  # só vale para o admin
     session: Session = Depends(get_session),
-    _: Usuario = Depends(usuario_atual),
+    atual: Usuario = Depends(usuario_atual),
 ):
-    coletas = session.exec(select(Coleta)).all()
-    correcoes = session.exec(select(Correcao)).all()
+    coop = coop_do_escopo(atual, cooperativa_id)
+    consulta_coletas = select(Coleta)
+    consulta_correcoes = select(Correcao)
     precos = {c.id: c.base_price for c in session.exec(select(Categoria)).all()}
+    if coop is not None:
+        consulta_coletas = consulta_coletas.where(Coleta.cooperativa_id == coop)
+        consulta_correcoes = consulta_correcoes.where(Correcao.cooperativa_id == coop)
+        # preço-base que a própria cooperativa definiu
+        for p in session.exec(select(PrecoBase).where(PrecoBase.cooperativa_id == coop)).all():
+            precos[p.categoria_id] = p.base_price
+    coletas = session.exec(consulta_coletas).all()
+    correcoes = session.exec(consulta_correcoes).all()
 
     itens = len(coletas)
     taxa = (len(correcoes) / itens * 100) if itens else 0.0

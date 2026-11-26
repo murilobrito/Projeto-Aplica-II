@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.deps import usuario_atual, usuario_opcional
+from app.deps import coop_do_escopo, usuario_atual, usuario_opcional
 from app.materiais import MATERIAIS, material_valido
-from app.models import Correcao, Dispositivo, Usuario
+from app.models import Coleta, Correcao, Dispositivo, Usuario
 from app.schemas import CorrecaoIn
 
 router = APIRouter(prefix="/correcoes", tags=["correcoes"])
@@ -26,13 +26,26 @@ def registrar_correcao(
             detail="Material inválido (use: plastico, papel, metal, vidro, organico, outros)",
         )
 
+    coop = usuario.cooperativa_id if usuario else None
+    device_id = dados.device_id
+    if device_id is not None:
+        lixeira = session.get(Dispositivo, device_id)
+        if lixeira is None or lixeira.cooperativa_id != coop:
+            device_id = None
+    coleta_id = dados.coleta_id
+    if coleta_id is not None:
+        coleta = session.get(Coleta, coleta_id)
+        if coleta is None or coleta.cooperativa_id != coop:
+            coleta_id = None
+
     correcao = Correcao(
-        coleta_id=dados.coleta_id,
+        cooperativa_id=coop,
+        coleta_id=coleta_id,
         material_detectado=dados.detectado,
         material_corrigido=dados.corrigido,
         title=dados.title,
         confidence=dados.confidence,
-        device_id=dados.device_id,
+        device_id=device_id,
         catador_id=usuario.login_id if usuario else None,
     )
     session.add(correcao)
@@ -66,14 +79,17 @@ def _dias(criado: dt.datetime, agora: dt.datetime) -> int:
 
 @router.get("")
 def listar_correcoes(
+    cooperativa_id: int | None = None,  # só vale para o admin
     session: Session = Depends(get_session),
-    _: Usuario = Depends(usuario_atual),
+    atual: Usuario = Depends(usuario_atual),
 ):
     """Formato igual ao type Correction do front (src/mocks/gestao.ts)."""
+    coop = coop_do_escopo(atual, cooperativa_id)
     agora = dt.datetime.now(dt.timezone.utc)
-    correcoes = session.exec(select(Correcao).order_by(Correcao.created_at.desc())).all()
-    dispositivos = {d.id: d for d in session.exec(select(Dispositivo)).all()}
-    usuarios = {u.login_id: u for u in session.exec(select(Usuario)).all()}
+    consulta = select(Correcao).order_by(Correcao.created_at.desc())
+    if coop is not None:
+        consulta = consulta.where(Correcao.cooperativa_id == coop)
+    correcoes = session.exec(consulta).all()
 
     saida = []
     for c in correcoes:

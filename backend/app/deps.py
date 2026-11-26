@@ -2,7 +2,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlmodel import Session
 
 from app.database import get_session
-from app.models import Usuario
+from app.models import Cooperativa, Usuario
 from app.security import ler_token
 
 _NAO_AUTORIZADO = HTTPException(
@@ -28,6 +28,11 @@ def usuario_atual(
     usuario = session.get(Usuario, dados.get("sub"))
     if usuario is None or not usuario.active:
         raise _NAO_AUTORIZADO
+    # cooperativa desativada = ninguém dela entra (o admin da plataforma não tem cooperativa)
+    if usuario.cooperativa_id is not None:
+        coop = session.get(Cooperativa, usuario.cooperativa_id)
+        if coop is not None and not coop.ativa:
+            raise _NAO_AUTORIZADO
     return usuario
 
 
@@ -59,3 +64,16 @@ def exige_papel(*papeis: str):
         return usuario
 
     return _checar
+
+def coop_do_escopo(usuario: Usuario, cooperativa_id: int | None = None) -> int | None:
+    """Em qual cooperativa esta requisição pode mexer.
+
+    - Gerente, coordenador e catador: sempre a própria, não importa o que mandarem.
+    - Admin (equipe EcoTriall): todas (None) ou a que ele pedir com ?cooperativa_id=.
+    Toda consulta de dados de cooperativa DEVE passar por aqui.
+    """
+    if usuario.role == "admin":
+        return cooperativa_id
+    if usuario.cooperativa_id is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Usuário sem cooperativa")
+    return usuario.cooperativa_id

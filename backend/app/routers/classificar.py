@@ -5,7 +5,7 @@ from app.database import get_session
 from app.deps import usuario_opcional
 from app.inference import get_inference
 from app.materiais import MATERIAIS, confianca_para_bolinhas
-from app.models import Coleta, Usuario
+from app.models import Coleta, Dispositivo, Usuario
 from app.schemas import Detection
 from app.storage import salvar_foto
 
@@ -39,7 +39,16 @@ async def classificar(
     descricao = resultado.description or f"{MATERIAIS.get(resultado.material, 'Item')} identificado"
     foto = salvar_foto(conteudo, file.filename)
 
+    # A coleta pertence à cooperativa de quem classificou. Sem login (demo), fica sem cooperativa
+    # e não entra nos números de ninguém. A lixeira só vale se for da mesma cooperativa.
+    coop = usuario.cooperativa_id if usuario else None
+    if device_id is not None:
+        lixeira = session.get(Dispositivo, device_id)
+        if lixeira is None or lixeira.cooperativa_id != coop:
+            device_id = None
+
     coleta = Coleta(
+        cooperativa_id=coop,
         material=resultado.material,
         title=resultado.title,
         confidence=bolinhas,

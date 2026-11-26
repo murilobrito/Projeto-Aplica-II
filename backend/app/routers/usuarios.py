@@ -3,8 +3,8 @@ from sqlmodel import Session, select
 
 from app.config import settings
 from app.database import get_session
-from app.deps import exige_papel, usuario_atual
-from app.models import Dispositivo, Usuario
+from app.deps import coop_do_escopo, exige_papel, usuario_atual
+from app.models import Cooperativa, Dispositivo, Usuario
 from app.schemas import NovoUsuarioIn, UsuarioPatch
 from app.security import hash_senha
 
@@ -22,10 +22,12 @@ def para_front(u: Usuario) -> dict:
         "email": u.email,
         "phone": u.phone,
         "active": u.active,
+        "cooperativaId": u.cooperativa_id,
     }
 
 
-# IDs automáticos: catadores 1xxx, gerente/coordenador 0xxx (igual ao front)
+# IDs automáticos: catadores 1xxx, gerente/coordenador 0xxx (igual ao front).
+# O ID é único na plataforma inteira (é o login), por isso olha todas as cooperativas.
 def proximo_login_id(session: Session, role: str) -> str:
     catador = role == "catador"
     numeros = []
@@ -51,9 +53,29 @@ def pode_criar(papel_requester: str, papel_alvo: str) -> bool:
     return False
 
 
+def criar_usuario_interno(session: Session, dados: NovoUsuarioIn, cooperativa_id: int) -> Usuario:
+    """Cria o usuário (sem commit). Também usado ao criar uma cooperativa nova."""
+    login_id = proximo_login_id(session, dados.role)
+    novo = Usuario(
+        login_id=login_id,
+        name=dados.name.strip(),
+        email=(dados.email or "").strip() or None,
+        phone=dados.phone.strip() or None,
+        role=dados.role,
+        active=True,
+        senha_hash=hash_senha(settings.seed_password),
+        cooperativa_id=cooperativa_id,
+    )
+    session.add(novo)
+    session.flush()
+    return novo
+
+
 def vincular_catador(session: Session, device_id: int, catador_id: str | None) -> None:
     """Define o operador do dispositivo; um catador opera uma lixeira por vez."""
-    for d in session.exec(select(Dispositivo)).all():
+    alvo = session.get(Dispositivo, device_id)
+    coop = alvo.cooperativa_id if alvo else None
+    for d in session.exec(select(Dispositivo).where(Dispositivo.cooperativa_id == coop)).all():
         if d.id == device_id:
             d.catador_id = catador_id
             session.add(d)
@@ -64,10 +86,15 @@ def vincular_catador(session: Session, device_id: int, catador_id: str | None) -
 
 @router.get("/usuarios")
 def listar_usuarios(
+    cooperativa_id: int | None = None,  # só vale para o admin
     session: Session = Depends(get_session),
     atual: Usuario = Depends(exige_papel("admin", "gerente", "coordenador")),
 ):
-    usuarios = session.exec(select(Usuario)).all()
+    coop = coop_do_escopo(atual, cooperativa_id)
+    consulta = select(Usuario)
+    if coop is not None:
+        consulta = consulta.where(Usuario.cooperativa_id == coop)
+    usuarios = session.exec(consulta).all()
     # Quem pode ver quem (a regra mora aqui no back; o front só esconde botões):
     # admin vê todos; gerente não vê o admin; coordenador só vê catadores.
     if atual.role == "gerente":
@@ -88,20 +115,23 @@ def criar_usuario(
     if not pode_criar(atual.role, dados.role):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Seu perfil não pode criar esse tipo de usuário")
 
-    login_id = proximo_login_id(session, dados.role)
-    novo = Usuario(
-        login_id=login_id,
-        name=dados.name.strip(),
-        email=(dados.email or "").strip() or None,
-        phone=dados.phone.strip() or None,
-        role=dados.role,
-        active=True,
-        senha_hash=hash_senha(settings.seed_password),
-    )
-    session.add(novo)
+    # O novo usuário nasce na cooperativa de quem o cria; o admin escolhe qual.
+    if atual.role == "admin":
+        if dados.cooperativa_id is None or session.get(Cooperativa, dados.cooperativa_id) is None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Informe a cooperativa")
+        coop = dados.cooperativa_id
+    else:
+        coop = coop_do_escopo(atual)
 
+    lixeira = None
     if dados.role == "catador" and dados.device_id:
-        vincular_catador(session, dados.device_id, login_id)
+        lixeira = session.get(Dispositivo, dados.device_id)
+        if lixeira is None or lixeira.cooperativa_id != coop:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Dispositivo inválido")
+
+    novo = criar_usuario_interno(session, dados, coop)
+    if lixeira is not None:
+        vincular_catador(session, lixeira.id, novo.login_id)
 
     session.commit()
     session.refresh(novo)
@@ -113,11 +143,14 @@ def atualizar_usuario(
     login_id: str,
     dados: UsuarioPatch,
     session: Session = Depends(get_session),
-        atual: Usuario = Depends(exige_papel("admin", "gerente")),
+    atual: Usuario = Depends(exige_papel("admin", "gerente")),
 ):
     usuario = session.get(Usuario, login_id)
-    # Para quem não é admin, o admin simplesmente não existe
-    if usuario is None or (usuario.role == "admin" and atual.role != "admin"):
+    # Para quem não é admin, o admin e as outras cooperativas simplesmente não existem
+    if usuario is None or (
+        atual.role != "admin"
+        and (usuario.role == "admin" or usuario.cooperativa_id != atual.cooperativa_id)
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado")
 
     if dados.active is not None:
@@ -142,8 +175,12 @@ def atualizar_usuario(
 
 @router.get("/catadores")
 def listar_catadores(
+    cooperativa_id: int | None = None,
     session: Session = Depends(get_session),
-    _: Usuario = Depends(usuario_atual),
+    atual: Usuario = Depends(usuario_atual),
 ):
-    catadores = session.exec(select(Usuario).where(Usuario.role == "catador")).all()
-    return [para_front(c) for c in catadores]
+    coop = coop_do_escopo(atual, cooperativa_id)
+    consulta = select(Usuario).where(Usuario.role == "catador")
+    if coop is not None:
+        consulta = consulta.where(Usuario.cooperativa_id == coop)
+    return [para_front(c) for c in session.exec(consulta).all()]
